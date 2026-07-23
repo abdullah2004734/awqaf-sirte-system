@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+body { font-family: 'Tajawal', sans-serif; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+@media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { position: absolute; left: 0; top: 0; width: 100%; direction: rtl; }
+    .no-print { display: none !important; }
+    @page { margin: 1cm; }
+}
+
+.tab-content { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+.tab-content.active { display: block; opacity: 1; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+.btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.9rem; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; border: none; outline: none; }
+.btn-primary { background-color: #047857; color: white; box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2); }
+.btn-primary:hover { background-color: #065f46; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(4, 120, 87, 0.3); }
+.btn-secondary { background-color: #2563eb; color: white; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+.btn-secondary:hover { background-color: #1d4ed8; transform: translateY(-1px); }
+.btn-danger { background-color: #dc2626; color: white; }
+.btn-danger:hover { background-color: #b91c1c; }
+.btn-warning { background-color: #d97706; color: white; }
+.btn-warning:hover { background-color: #b45309; }
+.btn-outline { background-color: transparent; border: 1px solid #cbd5e1; color: #475569; }
+.btn-outline:hover { background-color: #f8fafc; border-color: #94a3b8; }
+
+.form-input { width: 100%; padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; background-color: #f8fafc; font-size: 0.95rem; color: #1e293b; transition: all 0.2s; outline: none; }
+.form-input:focus { border-color: #047857; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1); }
+
+.nav-btn { width: 100%; text-align: right; padding: 0.8rem 1rem; border-radius: 0.5rem; margin-bottom: 0.3rem; font-weight: 700; color: #94a3b8; transition: all 0.2s; display: flex; align-items: center; gap: 0.8rem; }
+.nav-btn i { width: 20px; text-align: center; font-size: 1.1rem; transition: color 0.2s; }
+.nav-btn:hover { background-color: #1e293b; color: #f8fafc; }
+.nav-btn.active { background-color: #047857; color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+.nav-btn.active i { color: #a7f3d0; }
+.dark .nav-btn:hover { background-color: #1e293b; }
+
+.card { background: white; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; }
+.card-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.card-body { padding: 1.5rem; }
+
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th { font-weight: 700; padding: 1rem; text-align: right; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; }
+td { padding: 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+
+.certificate { border: 10px solid #065f46; padding: 40px; text-align: center; background: #fff url('assets/images/arabesque.png'); position: relative; min-height: 600px; color: #000; }
+.certificate::after { content: ''; position: absolute; top: 15px; left: 15px; right: 15px; bottom: 15px; border: 2px dashed #047857; pointer-events: none; }
+
+.id-card { width: 8.5cm; height: 5.5cm; border: 2px solid #065f46; border-radius: 10px; padding: 10px; background: #fff url('assets/images/arabesque.png'); position: relative; margin: 0 auto; display: flex; flex-direction: column; justify-content: space-between; color: #000; }
+.id-card-header { text-align: center; border-bottom: 2px solid #065f46; padding-bottom: 5px; margin-bottom: 5px; }
+.id-card-header img { width: 30px; margin: 0 auto; filter: sepia(1); }
+.id-card-header h4 { font-size: 9px; font-weight: bold; margin: 0; color: #065f46; }
+.id-card-body { flex: 1; font-size: 11px; line-height: 1.8; color: #1e293b; display:flex; justify-content:space-between; align-items:center; }
+.id-card-body strong { color: #047857; }
+.id-card-footer { text-align: center; font-size: 9px; background: #065f46; color: #fff; padding: 3px; border-radius: 4px; }
+.photo-box { width: 2.2cm; height: 2.8cm; border: 1px dashed #065f46; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8; background-color: rgba(255,255,255,0.7); }
