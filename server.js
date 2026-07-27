@@ -1,11 +1,11 @@
 const express = require('express');
-const fs = require('fs');
+const path = require('path');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const path = require('path');
+const mongoose = require('mongoose');
 
 const app = express();
-const SECRET_KEY = "Awqaf_Sirte_Secret_Key_2026"; 
+const SECRET_KEY = "Awqaf_Sirte_Secret_Key_2026";
 
 app.use(cors({
     origin: '*',
@@ -17,53 +17,75 @@ app.use(express.json({ limit: '50mb' }));
 const PUBLIC_DIR = __dirname;
 const INDEX_FILE = path.join(PUBLIC_DIR, 'index.html');
 
-// تقديم الملفات الأساسية
 app.use(express.static(PUBLIC_DIR));
 
-// المسار الرئيسي للواجهة
+// 1. الاتصال بقاعدة البيانات MongoDB السحابية
+const MONGO_URI = "mongodb+srv://abdo2004102030_db_user:w4jkUGMTPnIa1hT7@cluster0.y7usojc.mongodb.net/awqaf_db?retryWrites=true&w=majority";
+
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ تم الاتصال بقاعدة بيانات MongoDB السحابية بنجاح!'))
+    .catch(err => console.error('❌ خطأ في الاتصال بقاعدة البيانات:', err));
+
+// 2. تجهيز هيكل البيانات (نفس الهيكل القديم بالضبط لكي لا تتأثر المنظومة)
+const DataSchema = new mongoose.Schema({
+    docId: { type: String, default: "main_db" },
+    centers: { type: Array, default: [] },
+    teachers: { type: Array, default: [] },
+    students: { type: Array, default: [] }
+});
+
+const AppData = mongoose.model('AppData', DataSchema);
+
+// دالة تنشئ الخزنة لأول مرة إذا كانت فارغة
+const initDB = async () => {
+    try {
+        const doc = await AppData.findOne({ docId: "main_db" });
+        if (!doc) {
+            await AppData.create({ docId: "main_db", centers: [], teachers: [], students: [] });
+            console.log("✅ تم إنشاء خزنة البيانات الأساسية في MongoDB");
+        }
+    } catch (err) {
+        console.error("خطأ في تهيئة القاعدة", err);
+    }
+};
+initDB();
+
 app.get('/', (req, res) => {
+    const fs = require('fs');
     if (fs.existsSync(INDEX_FILE)) {
         res.sendFile(INDEX_FILE);
     } else {
-        res.status(404).send(`
-            <div style="font-family:sans-serif; text-align:center; padding:50px;">
-                <h1 style="color:red;">❌ لم يتم العثور على ملف index.html</h1>
-                <p>السيرفر يعمل بنجاح، ولكنه يبحث عن ملف index.html في هذا المسار ولا يجده:</p>
-                <code style="background:#eee; padding:5px; border-radius:5px;">${INDEX_FILE}</code>
-                <p>تأكد من وجود ملف index.html في نفس المجلد مع server.js بنفس هذا الاسم تماماً.</p>
-            </div>
-        `);
+        res.status(404).send(`<h1>❌ لم يتم العثور على ملف index.html</h1>`);
     }
 });
 
-const DB_FILE = path.join(PUBLIC_DIR, 'database.json');
+// 3. تسجيل الدخول
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (username === 'admin' && password === 'admin') {
+            const token = jwt.sign({ username, role: 'admin' }, SECRET_KEY, { expiresIn: '72h' });
+            return res.json({ success: true, token, role: 'admin' });
+        }
+        
+        if (username === 'entry' && password === 'entry') {
+            const token = jwt.sign({ username, role: 'entry' }, SECRET_KEY, { expiresIn: '72h' });
+            return res.json({ success: true, token, role: 'entry' });
+        }
 
-if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({ centers: [], teachers: [], students: [] }, null, 2));
-}
+        const db = await AppData.findOne({ docId: "main_db" });
+        const teacher = db.teachers.find(t => t.username === username && t.password === password);
+        
+        if (teacher) {
+            const token = jwt.sign({ username: teacher.username, role: 'teacher', centerId: teacher.centerId, teacherId: teacher.id }, SECRET_KEY, { expiresIn: '72h' });
+            return res.json({ success: true, token, role: 'teacher', centerId: teacher.centerId });
+        }
 
-// 1. تسجيل الدخول
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-
-    if (username === 'admin' && password === 'admin') {
-        const token = jwt.sign({ username, role: 'admin' }, SECRET_KEY, { expiresIn: '72h' });
-        return res.json({ success: true, token, role: 'admin' });
+        res.status(401).json({ success: false, message: 'بيانات الدخول غير صحيحة' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'خطأ في السيرفر' });
     }
-    
-    if (username === 'entry' && password === 'entry') {
-        const token = jwt.sign({ username, role: 'entry' }, SECRET_KEY, { expiresIn: '72h' });
-        return res.json({ success: true, token, role: 'entry' });
-    }
-
-    const teacher = db.teachers.find(t => t.username === username && t.password === password);
-    if (teacher) {
-        const token = jwt.sign({ username: teacher.username, role: 'teacher', centerId: teacher.centerId, teacherId: teacher.id }, SECRET_KEY, { expiresIn: '72h' });
-        return res.json({ success: true, token, role: 'teacher', centerId: teacher.centerId });
-    }
-
-    res.status(401).json({ success: false, message: 'بيانات الدخول غير صحيحة' });
 });
 
 // حارس الأمان
@@ -81,51 +103,53 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// 2. جلب البيانات
-app.get('/api/data', verifyToken, (req, res) => {
+// 4. جلب البيانات
+app.get('/api/data', verifyToken, async (req, res) => {
     try {
-        const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        const db = await AppData.findOne({ docId: "main_db" });
+        const dbData = { centers: db.centers, teachers: db.teachers, students: db.students };
 
         if (req.user.role === 'admin' || req.user.role === 'entry') {
-            res.setHeader('Content-Type', 'application/json');
-            return res.send(JSON.stringify(db));
+            return res.json(dbData);
         }
 
         if (req.user.role === 'teacher') {
             const myCenterId = req.user.centerId;
             const filteredData = {
-                centers: db.centers.filter(c => c.id === myCenterId),
-                teachers: db.teachers.filter(t => t.id === req.user.teacherId || t.centerId === myCenterId),
-                students: db.students.filter(s => s.centerId === myCenterId)
+                centers: dbData.centers.filter(c => c.id === myCenterId),
+                teachers: dbData.teachers.filter(t => t.id === req.user.teacherId || t.centerId === myCenterId),
+                students: dbData.students.filter(s => s.centerId === myCenterId)
             };
-            res.setHeader('Content-Type', 'application/json');
-            return res.send(JSON.stringify(filteredData));
+            return res.json(filteredData);
         }
     } catch (err) {
         res.status(500).json({ error: "خطأ في السيرفر" });
     }
 });
 
-// 3. حفظ البيانات
-app.post('/api/data', verifyToken, (req, res) => {
+// 5. حفظ البيانات
+app.post('/api/data', verifyToken, async (req, res) => {
     try {
-        const fullDB = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        const db = await AppData.findOne({ docId: "main_db" });
         const incomingData = req.body;
 
         if (req.user.role === 'admin' || req.user.role === 'entry') {
-            fs.writeFileSync(DB_FILE, JSON.stringify(incomingData, null, 2));
+            db.centers = incomingData.centers || [];
+            db.teachers = incomingData.teachers || [];
+            db.students = incomingData.students || [];
+            await db.save();
             return res.json({ success: true });
         }
 
         if (req.user.role === 'teacher') {
             const myCenterId = req.user.centerId;
-            const otherStudents = fullDB.students.filter(s => s.centerId !== myCenterId);
+            const otherStudents = db.students.filter(s => s.centerId !== myCenterId);
             const myIncomingStudents = (incomingData.students || [])
                 .filter(s => s.centerId === myCenterId)
                 .map(s => ({ ...s, centerId: myCenterId }));
 
-            fullDB.students = [...otherStudents, ...myIncomingStudents];
-            fs.writeFileSync(DB_FILE, JSON.stringify(fullDB, null, 2));
+            db.students = [...otherStudents, ...myIncomingStudents];
+            await db.save();
             return res.json({ success: true });
         }
     } catch (err) {
@@ -133,11 +157,9 @@ app.post('/api/data', verifyToken, (req, res) => {
     }
 });
 
-// التشغيل على المنفذ 3001
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`\n==================================================`);
-    console.log(`✅ السيرفر يعمل بنجاح الآن على الرابط التالي:`);
-    console.log(`👉 http://localhost:${PORT}`);
+    console.log(`✅ السيرفر يعمل بنجاح الآن!`);
     console.log(`==================================================\n`);
 });
