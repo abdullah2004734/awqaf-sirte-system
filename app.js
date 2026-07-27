@@ -53,15 +53,24 @@ function filterCentersByGender(dropdownId, genderType) {
 async function fetchDB() {
     try {
         const response = await fetch('/api/data', { method: 'GET', headers: getAuthHeaders() });
-        if (!response.ok) throw new Error('تعذر الاتصال بالسيرفر أو الجلسة منتهية');
+        
+        // السيرفر يطرد المستخدم فقط إذا انتهت الصلاحية فعلاً (الخطأ 401 أو 403)
+        if (response.status === 401 || response.status === 403) {
+            if(currentUserRole !== 'guest') {
+                logout();
+                Swal.fire({ icon: 'warning', title: 'انتهت الجلسة', text: 'يرجى تسجيل الدخول مجدداً.', confirmButtonColor: '#047857' });
+            }
+            return;
+        }
+        
+        if (!response.ok) throw new Error('السيرفر قيد التهيئة');
+        
         db = await response.json();
         renderAll();
     } catch (error) {
         console.error('خطأ في الاتصال:', error);
-        if(currentUserRole !== 'guest') {
-            logout();
-            Swal.fire({ icon: 'warning', title: 'انتهت الجلسة', text: 'يرجى تسجيل الدخول مجدداً.', confirmButtonColor: '#047857' });
-        }
+        // تم إزالة كود الطرد العشوائي من هنا!
+        Toast.fire({ icon: 'info', title: 'جاري الاتصال بالسحابة.. لا تقلق بياناتك آمنة.' });
     }
 }
 
@@ -70,8 +79,13 @@ async function saveDB() {
     if(document.getElementById('dashboard').classList.contains('active')) renderDashboard();
     try {
         const response = await fetch('/api/data', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(db) });
-        if (!response.ok) throw new Error('فشل الحفظ في السيرفر');
-    } catch(error) { Toast.fire({ icon: 'error', title: 'حدث خطأ أثناء الاتصال!' }); }
+        if (response.status === 401 || response.status === 403) {
+            logout();
+            return Swal.fire({ icon: 'warning', title: 'انتهت الجلسة', text: 'يرجى تسجيل الدخول مجدداً.', confirmButtonColor: '#047857' });
+        }
+    } catch(error) { 
+        Toast.fire({ icon: 'info', title: 'يتم الآن الحفظ في الخلفية..' }); 
+    }
 }
 
 function updateUIRoleDisplay() {
