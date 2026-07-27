@@ -26,7 +26,7 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ تم الاتصال بقاعدة بيانات MongoDB السحابية بنجاح!'))
     .catch(err => console.error('❌ خطأ في الاتصال بقاعدة البيانات:', err));
 
-// 2. تجهيز هيكل البيانات (نفس الهيكل القديم بالضبط لكي لا تتأثر المنظومة)
+// 2. تجهيز هيكل البيانات
 const DataSchema = new mongoose.Schema({
     docId: { type: String, default: "main_db" },
     centers: { type: Array, default: [] },
@@ -36,17 +36,14 @@ const DataSchema = new mongoose.Schema({
 
 const AppData = mongoose.model('AppData', DataSchema);
 
-// دالة تنشئ الخزنة لأول مرة إذا كانت فارغة
 const initDB = async () => {
     try {
         const doc = await AppData.findOne({ docId: "main_db" });
         if (!doc) {
             await AppData.create({ docId: "main_db", centers: [], teachers: [], students: [] });
-            console.log("✅ تم إنشاء خزنة البيانات الأساسية في MongoDB");
+            console.log("✅ تم إنشاء خزنة البيانات الأساسية");
         }
-    } catch (err) {
-        console.error("خطأ في تهيئة القاعدة", err);
-    }
+    } catch (err) {}
 };
 initDB();
 
@@ -75,20 +72,19 @@ app.post('/api/login', async (req, res) => {
         }
 
         const db = await AppData.findOne({ docId: "main_db" });
-        const teacher = db.teachers.find(t => t.username === username && t.password === password);
-        
-        if (teacher) {
-            const token = jwt.sign({ username: teacher.username, role: 'teacher', centerId: teacher.centerId, teacherId: teacher.id }, SECRET_KEY, { expiresIn: '72h' });
-            return res.json({ success: true, token, role: 'teacher', centerId: teacher.centerId });
+        if(db) {
+            const teacher = db.teachers.find(t => t.username === username && t.password === password);
+            if (teacher) {
+                const token = jwt.sign({ username: teacher.username, role: 'teacher', centerId: teacher.centerId, teacherId: teacher.id }, SECRET_KEY, { expiresIn: '72h' });
+                return res.json({ success: true, token, role: 'teacher', centerId: teacher.centerId });
+            }
         }
-
         res.status(401).json({ success: false, message: 'بيانات الدخول غير صحيحة' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'خطأ في السيرفر' });
     }
 });
 
-// حارس الأمان
 const verifyToken = (req, res, next) => {
     const bearerHeader = req.headers['authorization'];
     if (typeof bearerHeader !== 'undefined') {
@@ -106,7 +102,13 @@ const verifyToken = (req, res, next) => {
 // 4. جلب البيانات
 app.get('/api/data', verifyToken, async (req, res) => {
     try {
-        const db = await AppData.findOne({ docId: "main_db" });
+        let db = await AppData.findOne({ docId: "main_db" });
+        
+        // حماية: إذا لم يجد القاعدة عند بدء التشغيل، ينشئها فوراً
+        if (!db) {
+            db = await AppData.create({ docId: "main_db", centers: [], teachers: [], students: [] });
+        }
+        
         const dbData = { centers: db.centers, teachers: db.teachers, students: db.students };
 
         if (req.user.role === 'admin' || req.user.role === 'entry') {
@@ -127,16 +129,26 @@ app.get('/api/data', verifyToken, async (req, res) => {
     }
 });
 
-// 5. حفظ البيانات
+// 5. حفظ البيانات (السر هنا)
 app.post('/api/data', verifyToken, async (req, res) => {
     try {
-        const db = await AppData.findOne({ docId: "main_db" });
+        let db = await AppData.findOne({ docId: "main_db" });
+        if (!db) {
+            db = await AppData.create({ docId: "main_db", centers: [], teachers: [], students: [] });
+        }
+
         const incomingData = req.body;
 
         if (req.user.role === 'admin' || req.user.role === 'entry') {
             db.centers = incomingData.centers || [];
             db.teachers = incomingData.teachers || [];
             db.students = incomingData.students || [];
+            
+            // السر: إجبار القاعدة على ملاحظة التغيير والحفظ
+            db.markModified('centers');
+            db.markModified('teachers');
+            db.markModified('students');
+
             await db.save();
             return res.json({ success: true });
         }
@@ -149,17 +161,17 @@ app.post('/api/data', verifyToken, async (req, res) => {
                 .map(s => ({ ...s, centerId: myCenterId }));
 
             db.students = [...otherStudents, ...myIncomingStudents];
+            db.markModified('students');
             await db.save();
             return res.json({ success: true });
         }
     } catch (err) {
+        console.error("Save Error:", err);
         res.status(500).json({ error: "خطأ في الحفظ" });
     }
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`\n==================================================`);
     console.log(`✅ السيرفر يعمل بنجاح الآن!`);
-    console.log(`==================================================\n`);
 });
