@@ -1,130 +1,143 @@
 const express = require('express');
-const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
-const SECRET_KEY = "Awqaf_Sirte_Secret_Key_2026";
+const SECRET_KEY = "Awqaf_Sirte_Secret_Key_2026"; 
 
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'] }));
-app.use(express.json({ limit: '50mb' })); // لدعم مرفقات الرسائل
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '50mb' }));
 
 const PUBLIC_DIR = __dirname;
 const INDEX_FILE = path.join(PUBLIC_DIR, 'index.html');
+
+// تقديم الملفات الأساسية
 app.use(express.static(PUBLIC_DIR));
 
-const MONGO_URI = "mongodb+srv://abdo2004102030_db_user:w4jkUGMTPnIa1hT7@cluster0.y7usojc.mongodb.net/awqaf_db?retryWrites=true&w=majority";
-mongoose.connect(MONGO_URI).then(() => console.log('✅ تم الاتصال بقاعدة البيانات بنجاح')).catch(err => console.error('❌ خطأ في الاتصال:', err));
-
-const DataSchema = new mongoose.Schema({
-    docId: { type: String, default: "main_db" },
-    centers: { type: Array, default: [] },
-    teachers: { type: Array, default: [] },
-    students: { type: Array, default: [] },
-    messages: { type: Array, default: [] },
-    assistants: { type: Array, default: [] }
-});
-const AppData = mongoose.model('AppData', DataSchema);
-
-const initDB = async () => {
-    try {
-        const doc = await AppData.findOne({ docId: "main_db" });
-        if (!doc) await AppData.create({ docId: "main_db", centers: [], teachers: [], students: [], messages: [], assistants: [] });
-    } catch (err) {}
-};
-initDB();
-
+// المسار الرئيسي للواجهة
 app.get('/', (req, res) => {
-    const fs = require('fs');
-    if (fs.existsSync(INDEX_FILE)) res.sendFile(INDEX_FILE);
-    else res.status(404).send(`<h1>❌ ملف index.html مفقود</h1>`);
+    if (fs.existsSync(INDEX_FILE)) {
+        res.sendFile(INDEX_FILE);
+    } else {
+        res.status(404).send(`
+            <div style="font-family:sans-serif; text-align:center; padding:50px;">
+                <h1 style="color:red;">❌ لم يتم العثور على ملف index.html</h1>
+                <p>السيرفر يعمل بنجاح، ولكنه يبحث عن ملف index.html في هذا المسار ولا يجده:</p>
+                <code style="background:#eee; padding:5px; border-radius:5px;">${INDEX_FILE}</code>
+                <p>تأكد من وجود ملف index.html في نفس المجلد مع server.js بنفس هذا الاسم تماماً.</p>
+            </div>
+        `);
+    }
 });
 
-app.post('/api/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        if (username === 'admin' && password === 'admin') {
-            return res.json({ success: true, token: jwt.sign({ username, role: 'admin' }, SECRET_KEY, { expiresIn: '72h' }), role: 'admin' });
-        }
-        
-        const db = await AppData.findOne({ docId: "main_db" }).lean();
-        if(db) {
-            const assistant = (db.assistants || []).find(a => a.username === username && a.password === password);
-            if(assistant) {
-                const userRole = assistant.role || 'entry'; 
-                return res.json({ success: true, token: jwt.sign({ username: assistant.username, role: userRole }, SECRET_KEY, { expiresIn: '72h' }), role: userRole });
-            }
-            const teacher = db.teachers.find(t => t.username === username && t.password === password);
-            if (teacher) {
-                return res.json({ success: true, token: jwt.sign({ username: teacher.username, role: 'teacher', centerId: teacher.centerId, teacherId: teacher.id }, SECRET_KEY, { expiresIn: '72h' }), role: 'teacher', centerId: teacher.centerId });
-            }
-        }
-        res.status(401).json({ success: false, message: 'بيانات الدخول غير صحيحة' });
-    } catch (error) { res.status(500).json({ success: false, message: 'خطأ في السيرفر' }); }
+const DB_FILE = path.join(PUBLIC_DIR, 'database.json');
+
+if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify({ centers: [], teachers: [], students: [] }, null, 2));
+}
+
+// 1. تسجيل الدخول
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+
+    if (username === 'admin' && password === 'admin') {
+        const token = jwt.sign({ username, role: 'admin' }, SECRET_KEY, { expiresIn: '72h' });
+        return res.json({ success: true, token, role: 'admin' });
+    }
+    
+    if (username === 'entry' && password === 'entry') {
+        const token = jwt.sign({ username, role: 'entry' }, SECRET_KEY, { expiresIn: '72h' });
+        return res.json({ success: true, token, role: 'entry' });
+    }
+
+    const teacher = db.teachers.find(t => t.username === username && t.password === password);
+    if (teacher) {
+        const token = jwt.sign({ username: teacher.username, role: 'teacher', centerId: teacher.centerId, teacherId: teacher.id }, SECRET_KEY, { expiresIn: '72h' });
+        return res.json({ success: true, token, role: 'teacher', centerId: teacher.centerId });
+    }
+
+    res.status(401).json({ success: false, message: 'بيانات الدخول غير صحيحة' });
 });
 
+// حارس الأمان
 const verifyToken = (req, res, next) => {
     const bearerHeader = req.headers['authorization'];
     if (typeof bearerHeader !== 'undefined') {
-        jwt.verify(bearerHeader.split(' ')[1], SECRET_KEY, (err, authData) => {
+        const token = bearerHeader.split(' ')[1];
+        jwt.verify(token, SECRET_KEY, (err, authData) => {
             if (err) return res.sendStatus(403);
-            req.user = authData; next();
+            req.user = authData;
+            next();
         });
-    } else res.sendStatus(403);
+    } else {
+        res.sendStatus(403);
+    }
 };
 
-app.get('/api/data', verifyToken, async (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); res.setHeader('Pragma', 'no-cache'); res.setHeader('Expires', '0');
+// 2. جلب البيانات
+app.get('/api/data', verifyToken, (req, res) => {
     try {
-        let db = await AppData.findOne({ docId: "main_db" }).lean();
-        if (!db) db = await AppData.create({ docId: "main_db", centers: [], teachers: [], students: [], messages: [], assistants: [] });
-        
-        if (req.user.role === 'admin' || req.user.role === 'entry' || req.user.role === 'viewer') {
-            return res.json({ centers: db.centers, teachers: db.teachers, students: db.students, messages: db.messages || [], assistants: db.assistants || [] });
+        const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+
+        if (req.user.role === 'admin' || req.user.role === 'entry') {
+            res.setHeader('Content-Type', 'application/json');
+            return res.send(JSON.stringify(db));
         }
+
         if (req.user.role === 'teacher') {
             const myCenterId = req.user.centerId;
-            return res.json({
+            const filteredData = {
                 centers: db.centers.filter(c => c.id === myCenterId),
                 teachers: db.teachers.filter(t => t.id === req.user.teacherId || t.centerId === myCenterId),
-                students: db.students.filter(s => s.centerId === myCenterId),
-                messages: (db.messages || []).filter(m => m.senderId === req.user.teacherId || m.receiverId === req.user.teacherId)
-            });
+                students: db.students.filter(s => s.centerId === myCenterId)
+            };
+            res.setHeader('Content-Type', 'application/json');
+            return res.send(JSON.stringify(filteredData));
         }
-    } catch (err) { res.status(500).json({ error: "خطأ" }); }
+    } catch (err) {
+        res.status(500).json({ error: "خطأ في السيرفر" });
+    }
 });
 
-app.post('/api/data', verifyToken, async (req, res) => {
+// 3. حفظ البيانات
+app.post('/api/data', verifyToken, (req, res) => {
     try {
-        if (req.user.role === 'viewer') return res.status(403).json({ error: "المشاهد لا يمكنه الحفظ" });
-
+        const fullDB = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
         const incomingData = req.body;
+
         if (req.user.role === 'admin' || req.user.role === 'entry') {
-            await AppData.findOneAndUpdate({ docId: "main_db" }, { $set: { 
-                centers: incomingData.centers || [], teachers: incomingData.teachers || [], students: incomingData.students || [], messages: incomingData.messages || [], assistants: incomingData.assistants || []
-            }}, { upsert: true });
+            fs.writeFileSync(DB_FILE, JSON.stringify(incomingData, null, 2));
             return res.json({ success: true });
         }
+
         if (req.user.role === 'teacher') {
             const myCenterId = req.user.centerId;
-            const db = await AppData.findOne({ docId: "main_db" }).lean();
-            
-            const otherStudents = db.students.filter(s => s.centerId !== myCenterId);
-            const myIncomingStudents = (incomingData.students || []).filter(s => s.centerId === myCenterId).map(s => ({ ...s, centerId: myCenterId }));
-            
-            // تحديث حضور المعلم نفسه
-            const otherTeachers = db.teachers.filter(t => t.id !== req.user.teacherId);
-            const myIncomingTeacher = (incomingData.teachers || []).find(t => t.id === req.user.teacherId);
-            const newTeachersList = myIncomingTeacher ? [...otherTeachers, myIncomingTeacher] : db.teachers;
+            const otherStudents = fullDB.students.filter(s => s.centerId !== myCenterId);
+            const myIncomingStudents = (incomingData.students || [])
+                .filter(s => s.centerId === myCenterId)
+                .map(s => ({ ...s, centerId: myCenterId }));
 
-            const otherMessages = (db.messages || []).filter(m => m.senderId !== req.user.teacherId);
-            const myNewMessages = (incomingData.messages || []).filter(m => m.senderId === req.user.teacherId);
-            
-            await AppData.findOneAndUpdate({ docId: "main_db" }, { $set: { students: [...otherStudents, ...myIncomingStudents], teachers: newTeachersList, messages: [...otherMessages, ...myNewMessages] } });
+            fullDB.students = [...otherStudents, ...myIncomingStudents];
+            fs.writeFileSync(DB_FILE, JSON.stringify(fullDB, null, 2));
             return res.json({ success: true });
         }
-    } catch (err) { res.status(500).json({ error: "خطأ في الحفظ" }); }
+    } catch (err) {
+        res.status(500).json({ error: "خطأ في الحفظ" });
+    }
 });
 
-app.listen(process.env.PORT || 10000, () => console.log(`✅ السيرفر يعمل بنجاح!`));
+// التشغيل على المنفذ 3001
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+    console.log(`\n==================================================`);
+    console.log(`✅ السيرفر يعمل بنجاح الآن على الرابط التالي:`);
+    console.log(`👉 http://localhost:${PORT}`);
+    console.log(`==================================================\n`);
+});
