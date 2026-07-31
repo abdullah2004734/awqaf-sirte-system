@@ -177,49 +177,71 @@
             <!-- محتوى الشاشات -->
             <main class="flex-1 p-8 overflow-y-auto no-print">
                 
-                <!-- شاشة الإحصائيات -->
-                <div id="dashboard" class="tab-content active max-w-7xl mx-auto transition-opacity duration-300">
-                    <div class="flex items-center gap-3 mb-8">
-                        <div class="p-3 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-lg shadow-sm"><i class="fas fa-chart-line text-2xl"></i></div>
-                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">نظرة عامة ومؤشرات الأداء</h2>
-                    </div>
-                    
-                    <div id="alerts-container" class="mb-8 hidden">
-                        <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-xl p-5 shadow-sm">
-                            <div class="flex items-center text-orange-800 dark:text-orange-400 font-bold mb-3">
-                                <i class="fas fa-exclamation-circle text-lg ml-2"></i> تنبيه نظام: طلبة لم تُحدث بيانات حفظهم منذ أكثر من 30 يوماً
-                            </div>
-                            <p class="text-sm text-orange-700 dark:text-orange-300 mb-3 font-bold" id="inactive-count-msg"></p>
-                            <div class="max-h-40 overflow-y-auto bg-white dark:bg-slate-800 rounded-lg border border-orange-100 dark:border-orange-900/50 p-2" id="inactive-students-list"></div>
-                        </div>
-                    </div>
+               <div id="dashboard" class="tab-content active max-w-7xl mx-auto transition-opacity duration-300">
+    <div class="flex items-center gap-3 mb-8">
+        <div class="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-xl shadow-lg"><i class="fas fa-chart-line text-2xl"></i></div>
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 dark:text-white tracking-tight">لوحة التحكم والمؤشرات</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-bold mt-1">نظرة عامة تحليلية على أداء المراكز والطلاب</p>
+        </div>
+    </div>
+    
+    <div id="alerts-container" class="mb-8 hidden">
+        <div class="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-l-4 border-orange-500 rounded-xl p-5 shadow-sm">
+            <div class="flex items-center text-orange-800 dark:text-orange-400 font-bold mb-3">
+                <i class="fas fa-exclamation-triangle text-xl ml-2 animate-pulse"></i> تنبيه نظام: طلبة لم تُحدث بيانات حفظهم منذ أكثر من 30 يوماً
+            </div>
+            <p class="text-sm text-orange-700 dark:text-orange-300 mb-3 font-bold" id="inactive-count-msg"></p>
+            <div class="max-h-40 overflow-y-auto bg-white/50 dark:bg-slate-800/50 rounded-lg p-2" id="inactive-students-list"></div>
+        </div>
+    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="card p-6 border-t-4 border-t-blue-500 dark:bg-slate-800 flex items-center justify-between hover:shadow-md transition-shadow">
-                            <div><p class="text-slate-500 dark:text-slate-400 text-sm font-bold mb-1">إجمالي المراكز</p><h3 class="text-3xl font-black text-slate-800 dark:text-white" id="stat-centers">0</h3></div>
-                            <div class="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center"><i class="fas fa-mosque text-2xl text-blue-500 dark:text-blue-400"></i></div>
-                        </div>
-                        <div class="card p-6 border-t-4 border-t-purple-500 dark:bg-slate-800 flex items-center justify-between hover:shadow-md transition-shadow">
-                            <div><p class="text-slate-500 dark:text-slate-400 text-sm font-bold mb-1">الكادر التعليمي</p><h3 class="text-3xl font-black text-slate-800 dark:text-white" id="stat-teachers">0</h3></div>
-                            <div class="w-14 h-14 bg-purple-50 dark:bg-purple-900/30 rounded-full flex items-center justify-center"><i class="fas fa-chalkboard-teacher text-2xl text-purple-500 dark:text-purple-400"></i></div>
-                        </div>
-                        <div class="card p-6 border-t-4 border-t-emerald-500 dark:bg-slate-800 flex items-center justify-between hover:shadow-md transition-shadow">
-                            <div><p class="text-slate-500 dark:text-slate-400 text-sm font-bold mb-1">الطلاب المستمرين</p><h3 class="text-3xl font-black text-slate-800 dark:text-white" id="stat-students">0</h3></div>
-                            <div class="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center"><i class="fas fa-user-graduate text-2xl text-emerald-500 dark:text-emerald-400"></i></div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="card p-6 dark:bg-slate-800">
-                            <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2"><i class="fas fa-venus-mars text-gray-400"></i> توزيع الطلاب (ذكور/إناث)</h3>
-                            <div class="relative h-64"><canvas id="genderChart"></canvas></div>
-                        </div>
-                        <div class="card p-6 dark:bg-slate-800">
-                            <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2"><i class="fas fa-sort-amount-up text-gray-400"></i> أعلى المراكز كثافة (توب 5)</h3>
-                            <div class="relative h-64"><canvas id="centersChart"></canvas></div>
-                        </div>
-                    </div>
+    <!-- البطاقات الإحصائية العصرية -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="relative overflow-hidden bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group">
+            <div class="absolute -left-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="flex justify-between items-start relative z-10">
+                <div>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">إجمالي المراكز</p>
+                    <h3 class="text-4xl font-black text-slate-800 dark:text-white" id="stat-centers">0</h3>
                 </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-2xl flex items-center justify-center shadow-blue-500/30 shadow-lg"><i class="fas fa-mosque text-2xl"></i></div>
+            </div>
+        </div>
+        <div class="relative overflow-hidden bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group">
+            <div class="absolute -left-6 -top-6 w-24 h-24 bg-purple-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="flex justify-between items-start relative z-10">
+                <div>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">الكادر التعليمي</p>
+                    <h3 class="text-4xl font-black text-slate-800 dark:text-white" id="stat-teachers">0</h3>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-purple-500/30 shadow-lg"><i class="fas fa-chalkboard-teacher text-2xl"></i></div>
+            </div>
+        </div>
+        <div class="relative overflow-hidden bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group">
+            <div class="absolute -left-6 -top-6 w-24 h-24 bg-emerald-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="flex justify-between items-start relative z-10">
+                <div>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">الطلاب المستمرين</p>
+                    <h3 class="text-4xl font-black text-slate-800 dark:text-white" id="stat-students">0</h3>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-emerald-500/30 shadow-lg"><i class="fas fa-user-graduate text-2xl"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2"><i class="fas fa-chart-pie text-emerald-500"></i> توزيع الطلاب (ذكور/إناث)</h3>
+            <div class="relative h-64"><canvas id="genderChart"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2"><i class="fas fa-chart-bar text-blue-500"></i> أعلى المراكز كثافة (توب 5)</h3>
+            <div class="relative h-64"><canvas id="centersChart"></canvas></div>
+        </div>
+    </div>
+</div>
 
                 <!-- شاشة المراكز -->
                 <div id="centers" class="tab-content max-w-7xl mx-auto transition-opacity duration-300">
