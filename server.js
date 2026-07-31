@@ -42,21 +42,37 @@ if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify({ centers: [], teachers: [], students: [] }, null, 2));
 }
 
-// 1. تسجيل الدخول
+// 1. تسجيل الدخول المتطور للصلاحيات
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
 
+    // 1. المدير العام (كل الصلاحيات)
     if (username === 'admin' && password === 'admin') {
         const token = jwt.sign({ username, role: 'admin' }, SECRET_KEY, { expiresIn: '72h' });
         return res.json({ success: true, token, role: 'admin' });
     }
     
+    // 2. مساعد مدير (كل شيء عدا إدارة الصلاحيات)
     if (username === 'entry' && password === 'entry') {
         const token = jwt.sign({ username, role: 'entry' }, SECRET_KEY, { expiresIn: '72h' });
         return res.json({ success: true, token, role: 'entry' });
     }
 
+    // 3. مستخدم للعرض فقط (Read-only)
+    if (username === 'viewer' && password === 'viewer') {
+        const token = jwt.sign({ username, role: 'viewer' }, SECRET_KEY, { expiresIn: '72h' });
+        return res.json({ success: true, token, role: 'viewer' });
+    }
+
+    // 4. المساعدين المسجلين من لوحة الصلاحيات
+    const assistant = (db.assistants || []).find(a => a.username === username && a.password === password);
+    if (assistant) {
+        const token = jwt.sign({ username: assistant.username, role: 'entry' }, SECRET_KEY, { expiresIn: '72h' });
+        return res.json({ success: true, token, role: 'entry' });
+    }
+
+    // 5. المعلمين (يرون مراكزهم فقط)
     const teacher = db.teachers.find(t => t.username === username && t.password === password);
     if (teacher) {
         const token = jwt.sign({ username: teacher.username, role: 'teacher', centerId: teacher.centerId, teacherId: teacher.id }, SECRET_KEY, { expiresIn: '72h' });
