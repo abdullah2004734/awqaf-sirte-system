@@ -4,6 +4,7 @@ let editModes = { centerId: null, teacherId: null, studentId: null };
 let myCharts = {};
 const ITEMS_PER_PAGE = 10;
 let currentPage = { centers: 1, teachers: 1, students: 1 };
+let currentSelectedFileBase64 = null; // للمرفقات
 
 const Toast = Swal.mixin({
     toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
@@ -39,7 +40,6 @@ function filterCentersByGender(dropdownId, genderType) {
     const currentVal = dropdown.value;
     let html = '<option value="">-- يرجى الاختيار --</option>';
     
-    // التصفية بناءً على نوع المركز حصراً بدون مزدوج
     db.centers.filter(c => c.type === genderType).forEach(c => {
         html += `<option value="${c.id}">${c.name} (${c.type})</option>`;
     });
@@ -53,8 +53,6 @@ function filterCentersByGender(dropdownId, genderType) {
 async function fetchDB() {
     try {
         const response = await fetch('/api/data', { method: 'GET', headers: getAuthHeaders() });
-        
-        // السيرفر يطرد المستخدم فقط إذا انتهت الصلاحية فعلاً (الخطأ 401 أو 403)
         if (response.status === 401 || response.status === 403) {
             if(currentUserRole !== 'guest') {
                 logout();
@@ -62,14 +60,11 @@ async function fetchDB() {
             }
             return;
         }
-        
         if (!response.ok) throw new Error('السيرفر قيد التهيئة');
-        
         db = await response.json();
         renderAll();
     } catch (error) {
         console.error('خطأ في الاتصال:', error);
-        // تم إزالة كود الطرد العشوائي من هنا!
         Toast.fire({ icon: 'info', title: 'جاري الاتصال بالسحابة.. لا تقلق بياناتك آمنة.' });
     }
 }
@@ -96,29 +91,15 @@ function updateUIRoleDisplay() {
     
     document.getElementById('user-role-badge').innerText = roleText;
     
-    // الصلاحيات العادية (مدير ومساعد ومستعرض)
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = (currentUserRole === 'admin' || currentUserRole === 'entry' || currentUserRole === 'viewer') ? '' : 'none');
-    // الصلاحيات الحساسة
     document.querySelectorAll('.strict-admin-only').forEach(el => el.style.display = (currentUserRole === 'admin') ? '' : 'none');
 
-    // تفعيل وضع (القراءة فقط) للمستعرض عن طريق إخفاء أزرار الإضافة والتعديل والحذف
+    // وضع المستعرض (لا يعدل)
     if(currentUserRole === 'viewer') {
         document.querySelectorAll('button').forEach(btn => {
-            // استثناء أزرار التنقل والطباعة والبحث والمظهر
-            const isSafeBtn = btn.classList.contains('nav-btn') || 
-                              btn.innerHTML.includes('fa-print') || 
-                              btn.innerHTML.includes('fa-moon') || 
-                              btn.innerHTML.includes('fa-sun') || 
-                              btn.innerHTML.includes('fa-file-excel') || 
-                              btn.getAttribute('onclick')?.includes('showTab') ||
-                              btn.getAttribute('onclick')?.includes('logout') ||
-                              btn.getAttribute('onclick')?.includes('toggleDarkMode') ||
-                              btn.getAttribute('onclick')?.includes('changePage');
-            if(!isSafeBtn) {
-                btn.style.display = 'none';
-            }
+            const isSafeBtn = btn.classList.contains('nav-btn') || btn.innerHTML.includes('fa-print') || btn.innerHTML.includes('fa-moon') || btn.innerHTML.includes('fa-sun') || btn.innerHTML.includes('fa-file-excel') || btn.getAttribute('onclick')?.includes('showTab') || btn.getAttribute('onclick')?.includes('logout') || btn.getAttribute('onclick')?.includes('toggleDarkMode') || btn.getAttribute('onclick')?.includes('changePage');
+            if(!isSafeBtn) btn.style.display = 'none';
         });
-        // منع التعديل المزدوج للأسماء
         window.makeEditable = function() { return false; };
     }
 }
@@ -190,7 +171,7 @@ function showTab(tabId) {
     if(tabElement) tabElement.classList.add('active'); if(navElement) navElement.classList.add('active');
     localStorage.setItem('awqaf_current_tab', tabId);
     if(tabId === 'dashboard') renderDashboard();
-    if(tabId === 'attendance') renderAttendanceTable(); // <--- أضف هذا السطر هنا لتحديث الجدول عند فتح التبويب
+    if(tabId === 'attendance') renderAttendanceTable(); 
 }
 
 function renderAll() { 
@@ -209,8 +190,8 @@ function populateCenterDropdowns() {
         dropdown.innerHTML = html;
         if(currentVal) dropdown.value = currentVal; 
     });
-    filterCentersByGender('t-center', document.getElementById('t-type').value === 'معلم' ? 'ذكور' : 'إناث');
-    filterCentersByGender('s-center', document.getElementById('s-gender').value === 'ذكر' ? 'ذكور' : 'إناث');
+    filterCentersByGender('t-center', document.getElementById('t-type')?.value === 'معلم' ? 'ذكور' : 'إناث');
+    filterCentersByGender('s-center', document.getElementById('s-gender')?.value === 'ذكر' ? 'ذكور' : 'إناث');
 }
 
 function changePage(type, step) { currentPage[type] += step; if(type === 'centers') renderCenters(); else if(type === 'teachers') renderTeachers(); else if(type === 'students') renderStudents(); }
@@ -242,12 +223,12 @@ function renderDashboard() {
 
     const mCount = activeStudents.filter(s => s.gender === 'ذكر').length; const fCount = activeStudents.filter(s => s.gender === 'أنثى').length;
     if(myCharts.gender) myCharts.gender.destroy();
-    myCharts.gender = new Chart(document.getElementById('genderChart'), { type: 'doughnut', data: { labels: ['ذكور', 'إناث'], datasets: [{ data: [mCount, fCount], backgroundColor: ['#047857', '#fbbf24'], borderWidth: 0 }] }, options: { cutout: '60%', plugins: { legend: { position: 'bottom', labels:{color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} } }, maintainAspectRatio: false } });
+    myCharts.gender = new Chart(document.getElementById('genderChart'), { type: 'doughnut', data: { labels: ['ذكور', 'إناث'], datasets: [{ data: [mCount, fCount], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 0 }] }, options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels:{color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} } }, maintainAspectRatio: false } });
 
     let centerCounts = {}; activeStudents.forEach(s => { centerCounts[s.centerId] = (centerCounts[s.centerId] || 0) + 1; });
     let sortedCenters = Object.keys(centerCounts).map(id => { return { name: db.centers.find(x => x.id === id)?.name || 'غير محدد', count: centerCounts[id] }; }).sort((a,b) => b.count - a.count).slice(0, 5); 
     if(myCharts.centers) myCharts.centers.destroy();
-    myCharts.centers = new Chart(document.getElementById('centersChart'), { type: 'bar', data: { labels: sortedCenters.map(x => x.name), datasets: [{ label: 'عدد الطلبة', data: sortedCenters.map(x => x.count), backgroundColor: '#3b82f6', borderRadius: 4 }] }, options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: {stepSize: 1, color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} }, x: {ticks: {color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'}} }, maintainAspectRatio: false } });
+    myCharts.centers = new Chart(document.getElementById('centersChart'), { type: 'bar', data: { labels: sortedCenters.map(x => x.name), datasets: [{ label: 'عدد الطلبة', data: sortedCenters.map(x => x.count), backgroundColor: '#3b82f6', borderRadius: 6 }] }, options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: {stepSize: 1, color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} }, x: {ticks: {color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'}} }, maintainAspectRatio: false } });
 }
 
 function openCenterModal() { cancelEditCenter(); document.getElementById('center-modal-title').innerHTML = '<i class="fas fa-building ml-2 text-emerald-600"></i>تسجيل مركز جديد'; document.getElementById('centerModal').classList.remove('hidden'); }
@@ -277,10 +258,7 @@ function renderCenters() {
     pagedData.forEach((c, i) => {
         const actualIndex = startIdx + i + 1; const studentsCount = db.students.filter(s => s.centerId === c.id && !s.archived).length;
         const typeStyle = c.type === 'إناث' ? 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 border-pink-200 dark:border-pink-800' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
-        
-        // تحديد الكلمة تلقائياً حسب نوع المركز
         const studentLabel = c.type === 'ذكور' ? 'طالب' : 'طالبة';
-        
         const btnHtml = currentUserRole === 'admin' ? `<button onclick="editCenter('${c.id}')" class="text-blue-500 hover:text-blue-700 mx-2 transition-colors"><i class="fas fa-edit"></i></button><button onclick="deleteCenter('${c.id}')" class="text-red-500 hover:text-red-700 mx-2 transition-colors"><i class="fas fa-trash"></i></button>` : '-';
         tbody.innerHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><td class="text-center font-bold text-gray-500 dark:text-slate-400 py-3">${actualIndex}</td><td class="font-bold text-slate-700 dark:text-slate-200">${c.name}</td><td class="text-center"><span class="px-3 py-1 rounded-full text-xs font-bold border ${typeStyle}">${c.type}</span></td><td class="text-center font-bold text-emerald-600 dark:text-emerald-400">${studentsCount} ${studentLabel}</td><td class="text-center text-lg">${btnHtml}</td></tr>`;
     });
@@ -320,7 +298,7 @@ function renderTeachers() {
 }
 
 window.makeEditable = function(el, id, field) {
-    if(el.querySelector('input') || currentUserRole === 'teacher') return;
+    if(el.querySelector('input') || currentUserRole === 'teacher' || currentUserRole === 'viewer') return;
     const originalText = el.innerText.trim();
     el.innerHTML = `<input type="text" class="form-input text-sm px-2 py-1 m-0 border-blue-500 w-full dark:bg-slate-800 dark:text-white" value="${originalText}" onblur="cancelInline(this, '${originalText}')" onkeydown="if(event.key === 'Enter') saveInline(this, '${id}', '${field}')" onclick="event.stopPropagation()">`;
     const input = el.querySelector('input'); input.focus(); input.select();
@@ -348,7 +326,7 @@ function closeStudentModal() { document.getElementById('studentModal').classList
 function saveStudent() {
     const currentSurah = document.getElementById('s-surah').value; const currentDate = document.getElementById('s-date').value || new Date().toISOString().split('T')[0];
     let targetCenterId = document.getElementById('s-center').value;
-    if(currentUserRole === 'teacher') targetCenterId = localStorage.getItem('awqaf_center_id'); // تأكيد أمني إضافي للمعلم
+    if(currentUserRole === 'teacher') targetCenterId = localStorage.getItem('awqaf_center_id'); 
     let s = { id: editModes.studentId || Date.now().toString(), name: document.getElementById('s-name').value.trim(), dob: document.getElementById('s-dob').value, gender: document.getElementById('s-gender').value, centerId: targetCenterId, riwaya: document.getElementById('s-riwaya').value, surah: currentSurah, date: currentDate, archived: false, completionDate: '', history: [] };
     if(!s.name || !s.centerId) return Toast.fire({ icon: 'warning', title: 'يجب إدخال اسم الطالب واختيار المركز' });
     if (editModes.studentId) { const index = db.students.findIndex(x => x.id === editModes.studentId); const oldStudent = db.students[index]; s.archived = oldStudent.archived; s.completionDate = oldStudent.completionDate; s.history = oldStudent.history || []; const lastRecord = s.history.length > 0 ? s.history[s.history.length - 1] : null; if (!lastRecord || lastRecord.surah !== currentSurah) { s.history.push({ surah: currentSurah, date: currentDate }); } db.students[index] = s; } 
@@ -436,7 +414,6 @@ function printSingleCenter() {
     const students = db.students.filter(s => s.centerId === cid && !s.archived); 
     const staff = db.teachers.filter(t => t.centerId === cid);
     
-    // تحديد المسمى تلقائياً حسب نوع المركز
     const labelSingle = center.type === 'ذكور' ? 'طالب' : 'طالبة';
     const labelPlural = center.type === 'ذكور' ? 'الطلاب' : 'الطالبات';
 
@@ -497,9 +474,9 @@ function printIDCard(id) {
     const html = `<div style="display:flex; justify-content:center; padding-top: 50px;"><div class="id-card"><div class="id-card-header"><img src="assets/images/emblem.png" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Emblem_of_Libya.svg/200px-Emblem_of_Libya.svg.png'"><h4>وزارة الأوقاف والشؤون الإسلامية</h4><h4 style="color:#000;">مكتب أوقاف سرت</h4></div><div class="id-card-body"><div style="flex:1; padding-left:10px;"><div style="margin-bottom:4px;"><strong>الاسم:</strong> ${s.name}</div><div style="margin-bottom:4px;"><strong>المركز:</strong> ${c.name}</div><div><strong>الرواية:</strong> ${s.riwaya || 'قالون'}</div></div><div class="photo-box">صورة <br>شخصية</div></div><div class="id-card-footer">قسم القرآن الكريم والسنة النبوية</div></div></div>`;
     openPrintView(html, true);
 }
-// ===================== قسم الحضور والغياب الشهري =====================
+
 document.addEventListener("DOMContentLoaded", () => {
-    const today = new Date().toISOString().slice(0, 7); // تنسيق YYYY-MM
+    const today = new Date().toISOString().slice(0, 7); 
     const attMonthInput = document.getElementById('attendance-month');
     const repAttMonthInput = document.getElementById('rep-att-month');
     if(attMonthInput) attMonthInput.value = today;
@@ -514,16 +491,13 @@ function renderAttendanceTable() {
     
     let students = db.students.filter(s => !s.archived);
     
-    // إذا كان المستخدم معلماً، نجبره على رؤية مركزه فقط
     if (currentUserRole === 'teacher') {
         const myCenterId = localStorage.getItem('awqaf_center_id');
         students = students.filter(s => s.centerId === myCenterId);
     } 
-    // أما إذا كان مديراً، فنقوم بفلترة الطلاب حسب المركز الذي اختاره من القائمة
     else if (selectedCenterId) {
         students = students.filter(s => s.centerId === selectedCenterId);
     } else {
-        // إذا لم يختار المدير أي مركز بعد
         tbody.innerHTML = `<tr><td colspan="5" class="text-center py-12 text-gray-400 font-bold"><i class="fas fa-arrow-up text-xl mb-2 block"></i>الرجاء اختيار المركز لعرض طلابه وسجل حضورهم.</td></tr>`;
         return;
     }
@@ -563,21 +537,19 @@ function renderAttendanceTable() {
 }
 
 function updateAttendance(studentId, month, field, value) {
+    if(currentUserRole === 'viewer') return Toast.fire({ icon: 'error', title: 'صلاحيات قراءة فقط' });
     const student = db.students.find(s => s.id === studentId);
     if(student) {
         if(!student.attendance) student.attendance = {};
         if(!student.attendance[month]) student.attendance[month] = { present: 0, absent: 0, excused: 0 };
-        
         student.attendance[month][field] = parseInt(value) || 0;
-        saveDB(); // حفظ تلقائي في قاعدة البيانات والسيرفر
+        saveDB(); 
         Toast.fire({ icon: 'success', title: 'تم تحديث وحفظ السجل' });
     }
 }
 
 function printAttendanceSheet() {
     const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
-    
-    // جلب المركز من شاشة الحضور أو من شاشة التقارير أيهما قيد الاستخدام
     const centerSelectAtt = document.getElementById('attendance-center');
     const centerSelectRep = document.getElementById('rep-att-center');
     const selectedCenterId = (centerSelectAtt && centerSelectAtt.value) ? centerSelectAtt.value : (centerSelectRep ? centerSelectRep.value : '');
@@ -597,8 +569,6 @@ function printAttendanceSheet() {
 
    const centerId = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : selectedCenterId;
     const center = db.centers.find(c => c.id === centerId) || { name: 'المركز المحدد', type: 'ذكور' };
-    
-    // تكييف التسمية في ورقة الطباعة تلقائياً
     const studentLabel = center.type === 'ذكور' ? 'طالب' : 'طالبة';
 
     let html = `
@@ -610,7 +580,6 @@ function printAttendanceSheet() {
             <div>إجمالي عدد الطلاب المسجلين بالمركز: <span style="color:#047857;">${students.length} ${studentLabel}</span></div>
         </div>
         <h3 style="font-size:18px; font-weight:bold; margin-bottom:15px; text-align:center; background:#e2e8f0; padding:10px;">كشف الحضور والغياب الشهري المعتمد</h3>
-...
         <table style="width:100%; border-collapse:collapse; text-align:center; font-size:14px;" border="1">
             <thead style="background:#f1f5f9;">
                 <tr>
@@ -645,7 +614,7 @@ function printAttendanceSheet() {
     html += `</tbody></table>`;
     openPrintView(html);
 }
-// =================== الصلاحيات والمساعدين ===================
+
 function renderPermissions() {
     if(currentUserRole !== 'admin') return;
     const tBody = document.getElementById('perm-teachers-list');
@@ -660,36 +629,14 @@ function saveAssistant() {
     if(!db.assistants) db.assistants = [];
     db.assistants.push({ id: Date.now().toString(), name, username: userPass, password: userPass });
     document.getElementById('ast-name').value = ''; document.getElementById('ast-user').value = '';
-    renderPermissions(); saveDB(); Toast.fire({ icon: 'success', title: 'تم إضافة المساعد' });
+    renderPermissions(); saveDB(); Toast.fire({ icon: 'success', title: 'تم إضافة المستخدم' });
 }
 function deleteAssistant(id) {
     db.assistants = db.assistants.filter(a => a.id !== id);
     renderPermissions(); saveDB(); Toast.fire({ icon: 'success', title: 'تم الحذف' });
 }
 
-// =================== المراسلة الداخلية ===================
 let activeChatUserId = null;
-function renderMessageContacts() {
-    if(currentUserRole === 'teacher') return; // المعلم لا يرى القائمة
-    const centerFilter = document.getElementById('msg-center-filter');
-    if(centerFilter.options.length <= 1) {
-        centerFilter.innerHTML = '<option value="">-- كل المراكز --</option>' + db.centers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    }
-    const filteredTeachers = centerFilter.value ? db.teachers.filter(t => t.centerId === centerFilter.value) : db.teachers;
-    document.getElementById('msg-contacts').innerHTML = filteredTeachers.map(t => {
-        const unread = false; // يمكن تطويرها لاحقاً
-        return `<div onclick="selectChatUser('${t.id}', '${t.name}')" class="p-3 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer border dark:border-slate-600 transition-colors ${activeChatUserId===t.id?'ring-2 ring-blue-500':''}"><div class="font-bold text-slate-800 dark:text-slate-200">${t.name}</div><div class="text-xs text-slate-400">${db.centers.find(c=>c.id===t.centerId)?.name || ''}</div></div>`;
-    }).join('');
-}
-
-function selectChatUser(id, name) {
-    activeChatUserId = id;
-    document.getElementById('chat-title').innerText = name;
-    if(document.getElementById('chat-overlay')) document.getElementById('chat-overlay').style.display = 'none';
-    renderChatBox();
-}
-
-let currentSelectedFileBase64 = null;
 
 function handleFileSelect(event) {
     const file = event.target.files[0];
@@ -711,6 +658,25 @@ function clearSelectedFile() {
     currentSelectedFileBase64 = null;
     document.getElementById('msg-attachment').value = '';
     document.getElementById('file-preview-indicator').classList.add('hidden');
+}
+
+function renderMessageContacts() {
+    if(currentUserRole === 'teacher') return; 
+    const centerFilter = document.getElementById('msg-center-filter');
+    if(centerFilter.options.length <= 1) {
+        centerFilter.innerHTML = '<option value="">-- كل المراكز --</option>' + db.centers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+    const filteredTeachers = centerFilter.value ? db.teachers.filter(t => t.centerId === centerFilter.value) : db.teachers;
+    document.getElementById('msg-contacts').innerHTML = filteredTeachers.map(t => {
+        return `<div onclick="selectChatUser('${t.id}', '${t.name}')" class="p-3 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer border dark:border-slate-600 transition-colors ${activeChatUserId===t.id?'ring-2 ring-blue-500':''}"><div class="font-bold text-slate-800 dark:text-slate-200">${t.name}</div><div class="text-xs text-slate-400">${db.centers.find(c=>c.id===t.centerId)?.name || ''}</div></div>`;
+    }).join('');
+}
+
+function selectChatUser(id, name) {
+    activeChatUserId = id;
+    document.getElementById('chat-title').innerText = name;
+    if(document.getElementById('chat-overlay')) document.getElementById('chat-overlay').style.display = 'none';
+    renderChatBox();
 }
 
 function renderChatBox() {
@@ -754,24 +720,13 @@ function sendMessage() {
         senderId = myTeacher ? myTeacher.id : 'teacher'; receiverId = 'admin'; activeChatUserId = 'admin';
     }
     
-    const newMsg = { 
-        id: Date.now().toString(), 
-        text: text, 
-        attachment: currentSelectedFileBase64,
-        senderId, 
-        receiverId, 
-        date: new Date().toLocaleString('ar-LY', {hour: '2-digit', minute:'2-digit'}) 
-    };
-    
+    const newMsg = { id: Date.now().toString(), text: text, attachment: currentSelectedFileBase64, senderId, receiverId, date: new Date().toLocaleString('ar-LY', {hour: '2-digit', minute:'2-digit'}) };
     if(!db.messages) db.messages = []; db.messages.push(newMsg);
     
-    input.value = ''; 
-    clearSelectedFile();
-    renderChatBox(); 
-    saveDB();
-}  input.value = ''; renderChatBox(); saveDB();
+    input.value = ''; clearSelectedFile(); renderChatBox(); saveDB();
 }
-// طباعة نموذج رقم (1) تحضير - مطابق لشكل PDF
+
+// ======================== النماذج الرسمية 1 و 2 ========================
 function printOfficialForm1() {
     const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
     const cid = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : (document.getElementById('attendance-center')?.value || document.getElementById('rep-att-center')?.value);
@@ -838,7 +793,6 @@ function printOfficialForm1() {
     openPrintView(html, true);
 }
 
-// طباعة نموذج رقم (2) تحفيظ - مطابق لشكل PDF
 function printOfficialForm2() {
     const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
     const cid = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : (document.getElementById('attendance-center')?.value || document.getElementById('rep-att-center')?.value);
