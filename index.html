@@ -7,10 +7,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: { extend: {} }
-        }
+        tailwind.config = { darkMode: 'class', theme: { extend: {} } }
     </script>
     
     <script>
@@ -29,7 +26,6 @@
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
 
-    <!-- شاشة تسجيل الدخول -->
     <div id="login-screen" class="min-h-screen flex items-center justify-center bg-slate-900 dark:bg-black bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] hidden">
         <div class="bg-white dark:bg-slate-800 p-10 rounded-2xl shadow-2xl w-full max-w-md text-center relative overflow-hidden transition-colors duration-300">
             <div class="absolute top-0 right-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-emerald-700"></div>
@@ -56,7 +52,6 @@
         </div>
     </div>
 
-    <!-- واجهة النظام الرئيسية -->
     <div id="main-app" class="hidden h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
         <header class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-3 flex justify-between items-center no-print z-20 shadow-sm transition-colors duration-300">
             <div class="flex items-center gap-4">
@@ -121,7 +116,7 @@
                                 </div>
                                 <div class="flex gap-2 items-center">
                                     <input type="file" id="msg-attachment" class="hidden" accept="image/*,.pdf" onchange="handleFileSelect(event)">
-                                    <button onclick="document.getElementById('msg-attachment').click()" class="p-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors" title="إرفاق صورة أو PDF">
+                                    <button onclick="document.getElementById('msg-attachment').click()" class="p-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors" title="إرفاق ملف">
                                         <i class="fas fa-paperclip text-xl"></i>
                                     </button>
                                     <input type="text" id="msg-input" class="form-input flex-1 dark:bg-slate-700 dark:text-white dark:border-slate-600" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key === 'Enter') sendMessage()">
@@ -136,7 +131,7 @@
                     </div>
                 </div>
 
-                <!-- شاشة الصلاحيات -->
+                <!-- شاشة الصلاحيات (C# Style) -->
                 <div id="permissions" class="tab-content max-w-7xl mx-auto transition-opacity duration-300">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-3 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 rounded-lg"><i class="fas fa-user-shield text-2xl"></i></div>
@@ -144,26 +139,32 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="card shadow-sm dark:bg-slate-800">
-                            <div class="card-header bg-white dark:bg-slate-800 dark:border-slate-700 font-bold dark:text-white"><i class="fas fa-chalkboard-teacher text-blue-500 ml-2"></i>بيانات دخول الكادر التعليمي</div>
-                            <div class="p-4 overflow-y-auto h-96">
+                            <div class="card-header bg-white dark:bg-slate-800 dark:border-slate-700 font-bold dark:text-white"><i class="fas fa-chalkboard-teacher text-blue-500 ml-2"></i>حسابات الكادر التعليمي</div>
+                            <div class="p-4 overflow-y-auto h-[450px]">
                                 <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
                                     <thead class="bg-gray-50 dark:bg-slate-700 text-right"><tr><th class="p-2 dark:text-slate-200">الاسم والصفة</th><th class="p-2 dark:text-slate-200">اليوزر (Username)</th><th class="p-2 dark:text-slate-200">الرمز السري</th></tr></thead>
                                     <tbody id="perm-teachers-list" class="divide-y divide-gray-100 dark:divide-slate-700"></tbody>
                                 </table>
                             </div>
                         </div>
-                        <div class="card shadow-sm dark:bg-slate-800">
-                            <div class="card-header bg-white dark:bg-slate-800 dark:border-slate-700 flex justify-between items-center font-bold dark:text-white">
-                                <div><i class="fas fa-users-cog text-emerald-500 ml-2"></i>مستخدمين مساعدين والمستعرض</div>
+                        <div class="card shadow-sm dark:bg-slate-800 flex flex-col">
+                            <div class="card-header bg-white dark:bg-slate-800 dark:border-slate-700 font-bold dark:text-white"><i class="fas fa-users-cog text-emerald-500 ml-2"></i>إدارة أدوار المستخدمين الإضافيين</div>
+                            <div class="p-4 bg-emerald-50 dark:bg-slate-900 border-b dark:border-slate-700 flex flex-col gap-3">
+                                <div class="flex gap-2">
+                                    <input type="text" id="ast-name" placeholder="الاسم الكامل" class="form-input flex-1 dark:bg-slate-700 dark:text-white">
+                                    <input type="text" id="ast-user" placeholder="يوزر ورمز (موحد)" class="form-input flex-1 dark:bg-slate-700 dark:text-white">
+                                </div>
+                                <div class="flex gap-2">
+                                    <select id="ast-role" class="form-input flex-1 dark:bg-slate-700 dark:text-white">
+                                        <option value="entry">مساعد مدير (صلاحيات تعديل كاملة)</option>
+                                        <option value="viewer">مستعرض (صلاحيات قراءة فقط)</option>
+                                    </select>
+                                    <button onclick="saveAssistant()" class="btn btn-primary px-8"><i class="fas fa-save"></i> حفظ المستخدم</button>
+                                </div>
                             </div>
-                            <div class="p-4 bg-emerald-50 dark:bg-slate-900 border-b dark:border-slate-700 flex gap-2">
-                                <input type="text" id="ast-name" placeholder="الاسم" class="form-input flex-1 dark:bg-slate-700 dark:text-white">
-                                <input type="text" id="ast-user" placeholder="يوزر ورمز (موحد)" class="form-input flex-1 dark:bg-slate-700 dark:text-white">
-                                <button onclick="saveAssistant()" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة</button>
-                            </div>
-                            <div class="p-4 overflow-y-auto h-72">
+                            <div class="p-4 overflow-y-auto flex-1 h-[300px]">
                                 <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
-                                    <thead class="bg-gray-50 dark:bg-slate-700 text-right"><tr><th class="p-2 dark:text-slate-200">الاسم</th><th class="p-2 dark:text-slate-200">اليوزر والرمز</th><th class="p-2 text-center dark:text-slate-200">حذف</th></tr></thead>
+                                    <thead class="bg-gray-50 dark:bg-slate-700 text-right"><tr><th class="p-2 dark:text-slate-200">الاسم</th><th class="p-2 dark:text-slate-200">الدور</th><th class="p-2 dark:text-slate-200">اليوزر والرمز</th><th class="p-2 text-center dark:text-slate-200">حذف</th></tr></thead>
                                     <tbody id="perm-assistants-list" class="divide-y divide-gray-100 dark:divide-slate-700"></tbody>
                                 </table>
                             </div>
@@ -171,7 +172,7 @@
                     </div>
                 </div>
 
-                <!-- شاشة الإحصائيات -->
+                <!-- شاشة الإحصائيات (عصرية) -->
                 <div id="dashboard" class="tab-content active max-w-7xl mx-auto transition-opacity duration-300">
                     <div class="flex items-center gap-3 mb-8">
                         <div class="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-xl shadow-lg"><i class="fas fa-chart-line text-2xl"></i></div>
@@ -180,17 +181,13 @@
                             <p class="text-sm text-slate-500 dark:text-slate-400 font-bold mt-1">نظرة عامة تحليلية على أداء المراكز والطلاب</p>
                         </div>
                     </div>
-                    
                     <div id="alerts-container" class="mb-8 hidden">
                         <div class="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-l-4 border-orange-500 rounded-xl p-5 shadow-sm">
-                            <div class="flex items-center text-orange-800 dark:text-orange-400 font-bold mb-3">
-                                <i class="fas fa-exclamation-triangle text-xl ml-2 animate-pulse"></i> تنبيه نظام: طلبة لم تُحدث بيانات حفظهم منذ أكثر من 30 يوماً
-                            </div>
+                            <div class="flex items-center text-orange-800 dark:text-orange-400 font-bold mb-3"><i class="fas fa-exclamation-triangle text-xl ml-2 animate-pulse"></i> تنبيه نظام: طلبة لم تُحدث بيانات حفظهم منذ أكثر من 30 يوماً</div>
                             <p class="text-sm text-orange-700 dark:text-orange-300 mb-3 font-bold" id="inactive-count-msg"></p>
                             <div class="max-h-40 overflow-y-auto bg-white/50 dark:bg-slate-800/50 rounded-lg p-2" id="inactive-students-list"></div>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         <div class="relative overflow-hidden bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group">
                             <div class="absolute -left-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
@@ -214,7 +211,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                             <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2"><i class="fas fa-chart-pie text-emerald-500"></i> توزيع الطلاب (ذكور/إناث)</h3>
@@ -242,18 +238,12 @@
                                 <i class="fas fa-search absolute right-3 top-3 text-gray-400 dark:text-slate-400"></i>
                                 <input type="text" id="search-center" placeholder="بحث باسم المركز..." class="form-input pr-10 dark:bg-slate-700 dark:border-slate-600 dark:text-white" onkeyup="currentPage.centers=1; renderCenters()">
                             </div>
-                            <button onclick="exportToExcel('centers-table', 'المراكز')" class="btn btn-outline dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-600"><i class="fas fa-file-excel"></i> تصدير (Excel)</button>
+                            <button onclick="exportToExcel('centers-table', 'المراكز')" class="btn btn-outline dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-600"><i class="fas fa-file-excel"></i> تصدير</button>
                         </div>
                         <div class="overflow-x-auto">
                             <table id="centers-table" class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                                 <thead class="bg-gray-50 dark:bg-slate-700/50">
-                                    <tr>
-                                        <th class="w-16 text-center dark:text-slate-300">#</th>
-                                        <th class="dark:text-slate-300">اسم المركز / المسجد</th>
-                                        <th class="w-32 text-center dark:text-slate-300">النوع</th>
-                                        <th class="w-32 text-center dark:text-slate-300">الطلبة</th>
-                                        <th class="w-48 text-center dark:text-slate-300">الإجراءات</th>
-                                    </tr>
+                                    <tr><th class="w-16 text-center dark:text-slate-300">#</th><th class="dark:text-slate-300">اسم المركز / المسجد</th><th class="w-32 text-center dark:text-slate-300">النوع</th><th class="w-32 text-center dark:text-slate-300">الطلبة</th><th class="w-48 text-center dark:text-slate-300">الإجراءات</th></tr>
                                 </thead>
                                 <tbody id="centers-list" class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700"></tbody>
                             </table>
@@ -274,26 +264,15 @@
                         <div class="card-header bg-white dark:bg-slate-800 dark:border-slate-700 flex flex-wrap gap-4 justify-between items-center">
                             <button onclick="openTeacherModal()" class="btn btn-primary admin-only shadow-sm whitespace-nowrap"><i class="fas fa-plus"></i> إضافة معلم جديد</button>
                             <div class="flex gap-4 flex-1">
-                                <div class="relative flex-1 max-w-sm">
-                                    <i class="fas fa-search absolute right-3 top-3 text-gray-400 dark:text-slate-400"></i>
-                                    <input type="text" id="search-teacher" placeholder="بحث بالاسم..." class="form-input pr-10 dark:bg-slate-700 dark:border-slate-600 dark:text-white" onkeyup="currentPage.teachers=1; renderTeachers()">
-                                </div>
+                                <div class="relative flex-1 max-w-sm"><i class="fas fa-search absolute right-3 top-3 text-gray-400 dark:text-slate-400"></i><input type="text" id="search-teacher" placeholder="بحث بالاسم..." class="form-input pr-10 dark:bg-slate-700 dark:border-slate-600 dark:text-white" onkeyup="currentPage.teachers=1; renderTeachers()"></div>
                                 <select id="filter-t-center" class="form-input w-64 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white" onchange="currentPage.teachers=1; renderTeachers()"><option value="">جاري التحميل...</option></select>
                             </div>
-                            <button onclick="exportToExcel('teachers-table', 'الكادر_التعليمي')" class="btn btn-outline dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-600"><i class="fas fa-file-excel"></i> تصدير (Excel)</button>
+                            <button onclick="exportToExcel('teachers-table', 'الكادر_التعليمي')" class="btn btn-outline dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-600"><i class="fas fa-file-excel"></i> تصدير</button>
                         </div>
                         <div class="overflow-x-auto">
                             <table id="teachers-table" class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                                 <thead class="bg-gray-50 dark:bg-slate-700/50">
-                                    <tr>
-                                        <th class="dark:text-slate-300">الاسم الرباعي</th>
-                                        <th class="dark:text-slate-300">تاريخ الميلاد</th>
-                                        <th class="text-center dark:text-slate-300">الصفة</th>
-                                        <th class="text-center dark:text-slate-300">حالة الإجازة</th>
-                                        <th class="dark:text-slate-300">الهاتف</th>
-                                        <th class="dark:text-slate-300">المركز</th>
-                                        <th class="text-center dark:text-slate-300">الإجراءات</th>
-                                    </tr>
+                                    <tr><th class="dark:text-slate-300">الاسم الرباعي</th><th class="dark:text-slate-300">تاريخ الميلاد</th><th class="text-center dark:text-slate-300">الصفة</th><th class="text-center dark:text-slate-300">حالة الإجازة</th><th class="dark:text-slate-300">الهاتف</th><th class="dark:text-slate-300">المركز</th><th class="text-center dark:text-slate-300">الإجراءات</th></tr>
                                 </thead>
                                 <tbody id="teachers-list" class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700"></tbody>
                             </table>
@@ -314,24 +293,15 @@
                         <div class="card-header bg-white dark:bg-slate-800 dark:border-slate-700 flex flex-wrap gap-4 justify-between items-center">
                             <button onclick="openStudentModal()" class="btn btn-primary shadow-sm whitespace-nowrap admin-only"><i class="fas fa-plus"></i> إضافة طالب جديد</button>
                             <div class="flex gap-4 flex-1">
-                                <div class="relative flex-1 max-w-sm">
-                                    <i class="fas fa-search absolute right-3 top-3 text-gray-400 dark:text-slate-400"></i>
-                                    <input type="text" id="search-student" placeholder="بحث بالاسم..." class="form-input pr-10 dark:bg-slate-700 dark:border-slate-600 dark:text-white" onkeyup="currentPage.students=1; renderStudents()">
-                                </div>
+                                <div class="relative flex-1 max-w-sm"><i class="fas fa-search absolute right-3 top-3 text-gray-400 dark:text-slate-400"></i><input type="text" id="search-student" placeholder="بحث بالاسم..." class="form-input pr-10 dark:bg-slate-700 dark:border-slate-600 dark:text-white" onkeyup="currentPage.students=1; renderStudents()"></div>
                                 <select id="filter-s-center" class="form-input w-64 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white" onchange="currentPage.students=1; renderStudents()"><option value="">جاري التحميل...</option></select>
                             </div>
-                            <button onclick="exportToExcel('students-table', 'سجل_الطلاب')" class="btn btn-outline dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-600"><i class="fas fa-file-excel"></i> تصدير (Excel)</button>
+                            <button onclick="exportToExcel('students-table', 'سجل_الطلاب')" class="btn btn-outline dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-600"><i class="fas fa-file-excel"></i> تصدير</button>
                         </div>
                         <div class="overflow-x-auto">
                             <table id="students-table" class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                                 <thead class="bg-gray-50 dark:bg-slate-700/50">
-                                    <tr>
-                                        <th class="dark:text-slate-300">اسم الطالب</th>
-                                        <th class="dark:text-slate-300">العمر</th>
-                                        <th class="dark:text-slate-300">المركز</th>
-                                        <th class="dark:text-slate-300">مقدار الحفظ</th>
-                                        <th class="text-center dark:text-slate-300">الإجراءات</th>
-                                    </tr>
+                                    <tr><th class="dark:text-slate-300">اسم الطالب</th><th class="dark:text-slate-300">العمر</th><th class="dark:text-slate-300">المركز</th><th class="dark:text-slate-300">مقدار الحفظ</th><th class="text-center dark:text-slate-300">الإجراءات</th></tr>
                                 </thead>
                                 <tbody id="students-list" class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700"></tbody>
                             </table>
@@ -340,19 +310,17 @@
                     </div>
                 </div>
 
-                <!-- شاشة الحضور والغياب -->
+                <!-- شاشة الحضور والغياب (تم إضافة أزرار النماذج الرسمية هنا) -->
                 <div id="attendance" class="tab-content max-w-7xl mx-auto transition-opacity duration-300">
                     <div class="flex items-center justify-between gap-3 mb-8 flex-wrap">
                         <div class="flex items-center gap-3">
                             <div class="p-3 bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 rounded-lg shadow-sm"><i class="fas fa-clipboard-user text-2xl"></i></div>
-                            <h2 class="text-2xl font-bold text-slate-800 dark:text-white">سجل الحضور والغياب الشهري</h2>
+                            <h2 class="text-2xl font-bold text-slate-800 dark:text-white">سجل الحضور والغياب والنماذج الشهرية</h2>
                         </div>
                         <div class="flex flex-wrap gap-3 items-center">
                             <div id="attendance-center-wrapper" class="admin-only flex items-center gap-2">
                                 <label class="text-sm font-bold text-slate-600 dark:text-slate-300">المركز:</label>
-                                <select id="attendance-center" class="form-input w-64 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white" onchange="renderAttendanceTable()">
-                                    <option value="">-- اختر المركز --</option>
-                                </select>
+                                <select id="attendance-center" class="form-input w-64 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white" onchange="renderAttendanceTable()"><option value="">-- اختر المركز --</option></select>
                             </div>
                             <div class="flex items-center gap-2">
                                 <label class="text-sm font-bold text-slate-600 dark:text-slate-300">الشهر:</label>
@@ -362,19 +330,17 @@
                     </div>
                     <div class="card shadow-sm dark:bg-slate-800">
                         <div class="card-header bg-white dark:bg-slate-800 dark:border-slate-700 flex flex-wrap gap-4 justify-between items-center">
-                            <p class="text-sm text-slate-500 dark:text-slate-400 font-bold">قم بتحديد أيام الحضور والغياب لكل طالب عن الشهر المختار، وسيتم الحفظ تلقائياً.</p>
-                            <button onclick="printAttendanceSheet()" class="btn btn-secondary shadow-sm"><i class="fas fa-print"></i> طباعة كشف الحضور الشهري</button>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 font-bold">تحديد أيام الحضور والغياب لكل طالب.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="printOfficialForm1()" class="btn bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm"><i class="fas fa-print"></i> نموذج (1) تحضير A4</button>
+                                <button onclick="printOfficialForm2()" class="btn bg-teal-600 hover:bg-teal-700 text-white shadow-sm text-sm"><i class="fas fa-print"></i> نموذج (2) تحفيظ A4</button>
+                                <button onclick="printAttendanceSheet()" class="btn btn-secondary shadow-sm text-sm"><i class="fas fa-print"></i> طباعة كشف إحصائي</button>
+                            </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table id="attendance-table" class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                                 <thead class="bg-gray-50 dark:bg-slate-700/50">
-                                    <tr>
-                                        <th class="dark:text-slate-300">اسم الطالب</th>
-                                        <th class="text-center dark:text-slate-300">أيام الحضور</th>
-                                        <th class="text-center dark:text-slate-300">أيام الغياب</th>
-                                        <th class="text-center dark:text-slate-300">أعذار / تأخير</th>
-                                        <th class="text-center dark:text-slate-300">نسبة الالتزام</th>
-                                    </tr>
+                                    <tr><th class="dark:text-slate-300">اسم الطالب</th><th class="text-center dark:text-slate-300">أيام الحضور</th><th class="text-center dark:text-slate-300">أيام الغياب</th><th class="text-center dark:text-slate-300">أعذار / تأخير</th><th class="text-center dark:text-slate-300">نسبة الالتزام</th></tr>
                                 </thead>
                                 <tbody id="attendance-list" class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700"></tbody>
                             </table>
@@ -390,54 +356,26 @@
                     </div>
                     <div class="card mb-6 dark:bg-slate-800">
                         <div class="card-body bg-amber-50 dark:bg-slate-800 border-b border-amber-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4 p-4">
-                            <div class="flex items-center gap-3 flex-1">
-                                <i class="fas fa-filter text-amber-600 dark:text-amber-400"></i>
-                                <select id="filter-archive-center" class="form-input w-72 center-dropdown bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" onchange="renderArchive()"><option value="">جاري التحميل...</option></select>
-                            </div>
+                            <div class="flex items-center gap-3 flex-1"><i class="fas fa-filter text-amber-600 dark:text-amber-400"></i><select id="filter-archive-center" class="form-input w-72 center-dropdown bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" onchange="renderArchive()"><option value="">جاري التحميل...</option></select></div>
                             <button onclick="printArchive()" class="btn btn-secondary shadow-sm"><i class="fas fa-print"></i> طباعة كشوفات الأرشيف</button>
                         </div>
                     </div>
                     <div id="archive-container" class="space-y-6"></div>
                 </div>
 
-                <!-- شاشة التقارير -->
+                <!-- شاشة التقارير العامة -->
                 <div id="reports" class="tab-content max-w-7xl mx-auto transition-opacity duration-300">
                     <div class="flex items-center gap-3 mb-8">
                         <div class="p-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"><i class="fas fa-print text-2xl"></i></div>
-                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">إصدار التقارير الرسمية</h2>
+                        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">إصدار التقارير الإحصائية</h2>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- إضافة النماذج الإدارية الجديدة هنا -->
-                        <div class="card dark:bg-slate-800 dark:border-slate-700 border-2 border-emerald-500 relative overflow-hidden group">
-                            <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-500 rounded-bl-full z-0 opacity-20"></div>
-                            <div class="card-body relative z-10">
-                                <div class="flex items-center gap-4 mb-4">
-                                    <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center text-emerald-600"><i class="fas fa-file-invoice text-xl"></i></div>
-                                    <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">النماذج الإدارية (1 & 2)</h3>
-                                </div>
-                                <p class="text-slate-500 dark:text-slate-400 text-sm mb-4 h-10">طباعة النماذج المعتمدة لتوثيق التحضير اليومي والتقرير الشهري.</p>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button onclick="printOfficialForm1()" class="btn bg-emerald-600 text-white hover:bg-emerald-700 text-xs py-2 px-1"><i class="fas fa-print"></i> نموذج (1) تحضير</button>
-                                    <button onclick="printOfficialForm2()" class="btn bg-teal-600 text-white hover:bg-teal-700 text-xs py-2 px-1"><i class="fas fa-print"></i> نموذج (2) تحفيظ</button>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600"><i class="fas fa-list text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">كشوفات المراكز</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-6 h-10">طباعة قوائم رسمية بأسماء المراكز والمساجد الفعالة.</p><div class="grid grid-cols-2 gap-3"><button onclick="printCenters('ذكور')" class="btn btn-outline dark:bg-slate-700 dark:text-blue-300 text-blue-700 border-blue-200 dark:border-blue-800 hover:bg-blue-50"><i class="fas fa-male"></i> مراكز الذكور</button><button onclick="printCenters('إناث')" class="btn btn-outline dark:bg-slate-700 dark:text-pink-300 text-pink-700 border-pink-200 dark:border-pink-800 hover:bg-pink-50"><i class="fas fa-female"></i> مراكز الإناث</button></div></div></div>
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600"><i class="fas fa-file-alt text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">كشف إنجاز مركز</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-6 h-10">استخراج كشف بأسماء طلاب مركز معين.</p><div class="flex gap-3"><select id="report-center" class="form-input flex-1 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white"><option value="">جاري التحميل...</option></select><button onclick="printSingleCenter()" class="btn btn-primary whitespace-nowrap"><i class="fas fa-print"></i> طباعة</button></div></div></div>
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-orange-50 dark:bg-orange-900/30 rounded-full flex items-center justify-center text-orange-600"><i class="fas fa-filter text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">تقرير مخصص (بالعمر)</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-4 h-10">استخراج كشف بطلاب مركز محدد ضمن فئة عمرية.</p><div class="grid grid-cols-2 gap-2 mb-3"><input type="number" id="rep-age-min" placeholder="من عمر" class="form-input dark:bg-slate-700 dark:border-slate-600 dark:text-white"><input type="number" id="rep-age-max" placeholder="إلى عمر" class="form-input dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div><div class="flex gap-3"><select id="rep-custom-center" class="form-input flex-1 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white"><option value="">الكل</option></select><button onclick="printCustomReport()" class="btn btn-warning whitespace-nowrap"><i class="fas fa-print"></i> طباعة</button></div></div></div>
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600"><i class="fas fa-chalkboard-teacher text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">الكادر التعليمي (ذكور)</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-6 h-10">كشف بالمعلمين متضمناً أرقام الهواتف والمراكز المكلفين بها.</p><button onclick="printTeachers('معلم')" class="btn btn-outline w-full dark:bg-slate-700 dark:text-purple-300 text-purple-700 border-purple-200 dark:border-purple-800 hover:bg-purple-50"><i class="fas fa-print"></i> استخراج الكشف</button></div></div>
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-pink-50 dark:bg-pink-900/30 rounded-full flex items-center justify-center text-pink-600"><i class="fas fa-chalkboard-teacher text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">الكادر التعليمي (إناث)</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-6 h-10">كشف بالمعلمات متضمناً أرقام الهواتف والمراكز المكلفات بها.</p><button onclick="printTeachers('معلمة')" class="btn btn-outline w-full dark:bg-slate-700 dark:text-pink-300 text-pink-700 border-pink-200 dark:border-pink-800 hover:bg-pink-50"><i class="fas fa-print"></i> استخراج الكشف</button></div></div>
-                        <div class="card dark:bg-slate-800 dark:border-slate-700">
-                            <div class="card-body">
-                                <div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-teal-50 dark:bg-teal-900/30 rounded-full flex items-center justify-center text-teal-600"><i class="fas fa-clipboard-user text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">كشف الحضور والغياب</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-4 h-10">طباعة تقرير الحضور الشهري المعتمد للطلاب.</p>
-                                <div class="space-y-3">
-                                    <select id="rep-att-center" class="form-input w-full center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white"><option value="">-- اختر المركز للطباعة --</option></select>
-                                    <div class="flex gap-3"><input type="month" id="rep-att-month" class="form-input flex-1 dark:bg-slate-700 dark:border-slate-600 dark:text-white"><button onclick="printAttendanceSheet()" class="btn btn-primary whitespace-nowrap"><i class="fas fa-print"></i> طباعة</button></div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </main>
@@ -448,7 +386,6 @@
     <div id="print-area" class="hidden bg-white text-black p-4"></div>
 
     <!-- ================== النوافذ المنبثقة (Modals) ================== -->
-    
     <!-- نافذة المركز -->
     <div id="centerModal" class="fixed inset-0 bg-slate-900 bg-opacity-70 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden mx-4 dark:border dark:border-slate-700">
@@ -458,113 +395,50 @@
             </div>
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <div class="md:col-span-2">
-                        <label class="form-label dark:text-slate-300">اسم المركز / المسجد</label>
-                        <input type="text" id="center-name" placeholder="مثال: مركز الإمام مالك لتحفيظ القرآن" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white focus:dark:ring-emerald-500/50">
-                    </div>
-                    <div>
-                        <label class="form-label dark:text-slate-300">تصنيف المركز</label>
-                        <select id="center-type" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white focus:dark:ring-emerald-500/50">
-                            <option value="ذكور">مركز ذكور فقط</option>
-                            <option value="إناث">مركز إناث فقط</option>
-                        </select>
-                    </div>
+                    <div class="md:col-span-2"><label class="form-label dark:text-slate-300">اسم المركز / المسجد</label><input type="text" id="center-name" placeholder="مثال: مركز الإمام مالك لتحفيظ القرآن" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white focus:dark:ring-emerald-500/50"></div>
+                    <div><label class="form-label dark:text-slate-300">تصنيف المركز</label><select id="center-type" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white focus:dark:ring-emerald-500/50"><option value="ذكور">مركز ذكور فقط</option><option value="إناث">مركز إناث فقط</option></select></div>
                 </div>
             </div>
-            <div class="bg-slate-50 dark:bg-slate-700 border-t dark:border-slate-600 p-4 flex justify-end gap-3">
-                <button onclick="closeCenterModal()" class="btn btn-outline dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"><i class="fas fa-times"></i> إلغاء</button>
-                <button id="btn-save-center" onclick="saveCenter()" class="btn btn-primary"><i class="fas fa-save"></i> حفظ بيانات المركز</button>
-            </div>
+            <div class="bg-slate-50 dark:bg-slate-700 border-t dark:border-slate-600 p-4 flex justify-end gap-3"><button onclick="closeCenterModal()" class="btn btn-outline dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"><i class="fas fa-times"></i> إلغاء</button><button id="btn-save-center" onclick="saveCenter()" class="btn btn-primary"><i class="fas fa-save"></i> حفظ بيانات المركز</button></div>
         </div>
     </div>
 
     <!-- نافذة المعلم -->
     <div id="teacherModal" class="fixed inset-0 bg-slate-900 bg-opacity-70 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden mx-4 dark:border dark:border-slate-700">
-            <div class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600 p-4 flex justify-between items-center">
-                <h3 class="font-bold text-slate-800 dark:text-white" id="teacher-modal-title"><i class="fas fa-user-plus ml-2 text-emerald-600"></i>تسجيل كادر تعليمي جديد</h3>
-                <button onclick="closeTeacherModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-600 px-2 py-1 rounded transition-colors"><i class="fas fa-times text-xl"></i></button>
-            </div>
+            <div class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600 p-4 flex justify-between items-center"><h3 class="font-bold text-slate-800 dark:text-white" id="teacher-modal-title"><i class="fas fa-user-plus ml-2 text-emerald-600"></i>تسجيل كادر تعليمي جديد</h3><button onclick="closeTeacherModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-600 px-2 py-1 rounded transition-colors"><i class="fas fa-times text-xl"></i></button></div>
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div><label class="form-label dark:text-slate-300">الاسم الرباعي</label><input type="text" id="t-name" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" placeholder="الاسم كاملاً"></div>
-                    <div><label class="form-label dark:text-slate-300">الرقم الوطني</label><input type="text" id="t-nid" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" maxlength="12" placeholder="12 رقم"></div>
-                    <div><label class="form-label dark:text-slate-300">تاريخ الميلاد</label><input type="date" id="t-dob" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
-                    
-                    <div><label class="form-label dark:text-slate-300">يوزر الدخول (للمعلم)</label><input type="text" id="t-username" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" placeholder="مثال: ahmed_123"></div>
-                    <div><label class="form-label dark:text-slate-300">كلمة المرور (للمعلم)</label><input type="text" id="t-password" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" placeholder="الرقم السري"></div>
-                    
-                    <div><label class="form-label dark:text-slate-300">الصفة (الجنس)</label>
-                        <select id="t-type" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" onchange="filterCentersByGender('t-center', this.value === 'معلم' ? 'ذكور' : 'إناث')">
-                            <option value="معلم">معلم (ذكر)</option>
-                            <option value="معلمة">معلمة (أنثى)</option>
-                        </select>
-                    </div>
-                    <div><label class="form-label dark:text-slate-300">حالة الإجازة</label>
-                        <select id="t-certified" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                            <option value="مجاز">مجاز</option>
-                            <option value="غير مجاز">غير مجاز</option>
-                        </select>
-                    </div>
-                    <div><label class="form-label dark:text-slate-300">طبيعة العمل</label>
-                        <select id="t-payment" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                            <option value="مكافأة">مكافأة</option>
-                            <option value="متطوع">متطوع</option>
-                        </select>
-                    </div>
+                    <div><label class="form-label dark:text-slate-300">الاسم الرباعي</label><input type="text" id="t-name" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" placeholder="الاسم كاملاً"></div><div><label class="form-label dark:text-slate-300">الرقم الوطني</label><input type="text" id="t-nid" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" maxlength="12" placeholder="12 رقم"></div><div><label class="form-label dark:text-slate-300">تاريخ الميلاد</label><input type="date" id="t-dob" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                    <div><label class="form-label dark:text-slate-300">يوزر الدخول (للمعلم)</label><input type="text" id="t-username" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" placeholder="مثال: ahmed_123"></div><div><label class="form-label dark:text-slate-300">كلمة المرور (للمعلم)</label><input type="text" id="t-password" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" placeholder="الرقم السري"></div>
+                    <div><label class="form-label dark:text-slate-300">الصفة (الجنس)</label><select id="t-type" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" onchange="filterCentersByGender('t-center', this.value === 'معلم' ? 'ذكور' : 'إناث')"><option value="معلم">معلم (ذكر)</option><option value="معلمة">معلمة (أنثى)</option></select></div>
+                    <div><label class="form-label dark:text-slate-300">حالة الإجازة</label><select id="t-certified" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"><option value="مجاز">مجاز</option><option value="غير مجاز">غير مجاز</option></select></div>
+                    <div><label class="form-label dark:text-slate-300">طبيعة العمل</label><select id="t-payment" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"><option value="مكافأة">مكافأة</option><option value="متطوع">متطوع</option></select></div>
                     <div class="col-span-2"><label class="form-label dark:text-slate-300">المركز التابع له (مفلتر حسب الجنس)</label><select id="t-center" class="form-input center-dropdown dark:bg-slate-900 dark:border-slate-600 dark:text-white"><option value="">جاري التحميل...</option></select></div>
                     <div><label class="form-label dark:text-slate-300">رقم الهاتف</label><input type="text" id="t-phone" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" dir="ltr" placeholder="09X XXX XXXX"></div>
-                    <div class="col-span-3"><label class="form-label dark:text-slate-300">فترة التدريس (تمنع التعارض الزمني)</label>
-                        <select id="t-period" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                            <option value="صباحي">الفترة الصباحية</option>
-                            <option value="بعد العصر">بعد العصر</option>
-                            <option value="بعد المغرب">بعد المغرب</option>
-                        </select>
-                    </div>
+                    <div class="col-span-3"><label class="form-label dark:text-slate-300">فترة التدريس (تمنع التعارض الزمني)</label><select id="t-period" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"><option value="صباحي">الفترة الصباحية</option><option value="بعد العصر">بعد العصر</option><option value="بعد المغرب">بعد المغرب</option></select></div>
                 </div>
             </div>
-            <div class="bg-slate-50 dark:bg-slate-700 border-t dark:border-slate-600 p-4 flex justify-end gap-3">
-                <button onclick="closeTeacherModal()" class="btn btn-outline dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"><i class="fas fa-times"></i> إلغاء</button>
-                <button id="btn-save-teacher" onclick="saveTeacher()" class="btn btn-primary"><i class="fas fa-save"></i> حفظ البيانات</button>
-            </div>
+            <div class="bg-slate-50 dark:bg-slate-700 border-t dark:border-slate-600 p-4 flex justify-end gap-3"><button onclick="closeTeacherModal()" class="btn btn-outline dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"><i class="fas fa-times"></i> إلغاء</button><button id="btn-save-teacher" onclick="saveTeacher()" class="btn btn-primary"><i class="fas fa-save"></i> حفظ البيانات</button></div>
         </div>
     </div>
 
     <!-- نافذة الطالب -->
     <div id="studentModal" class="fixed inset-0 bg-slate-900 bg-opacity-70 z-50 hidden flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden mx-4 max-h-[90vh] flex flex-col dark:border dark:border-slate-700">
-            <div class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600 p-4 flex justify-between items-center shrink-0">
-                <h3 class="font-bold text-slate-800 dark:text-white" id="student-modal-title"><i class="fas fa-book-reader ml-2 text-emerald-600"></i>بيانات الطالب وحالة الحفظ</h3>
-                <button onclick="closeStudentModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-600 px-2 py-1 rounded transition-colors"><i class="fas fa-times text-xl"></i></button>
-            </div>
+            <div class="bg-slate-50 dark:bg-slate-700 border-b dark:border-slate-600 p-4 flex justify-between items-center shrink-0"><h3 class="font-bold text-slate-800 dark:text-white" id="student-modal-title"><i class="fas fa-book-reader ml-2 text-emerald-600"></i>بيانات الطالب وحالة الحفظ</h3><button onclick="closeStudentModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-600 px-2 py-1 rounded transition-colors"><i class="fas fa-times text-xl"></i></button></div>
             <div class="p-6 overflow-y-auto">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="col-span-2"><label class="form-label dark:text-slate-300">اسم الطالب الرباعي</label><input type="text" id="s-name" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" placeholder="الاسم كامل"></div>
                     <div><label class="form-label dark:text-slate-300">تاريخ الميلاد</label><input type="date" id="s-dob" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
-                    <div><label class="form-label dark:text-slate-300">الجنس</label>
-                        <select id="s-gender" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" onchange="filterCentersByGender('s-center', this.value === 'ذكر' ? 'ذكور' : 'إناث')">
-                            <option value="ذكر">ذكر</option>
-                            <option value="أنثى">أنثى</option>
-                        </select>
-                    </div>
+                    <div><label class="form-label dark:text-slate-300">الجنس</label><select id="s-gender" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white" onchange="filterCentersByGender('s-center', this.value === 'ذكر' ? 'ذكور' : 'إناث')"><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
                     <div class="col-span-2"><label class="form-label dark:text-slate-300">المركز المقيد به (مفلتر حسب الجنس)</label><select id="s-center" class="form-input center-dropdown dark:bg-slate-900 dark:border-slate-600 dark:text-white"><option value="">جاري التحميل...</option></select></div>
-                    
-                    <div><label class="form-label dark:text-slate-300">الرواية المقروء بها</label>
-                        <select id="s-riwaya" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                            <option value="قالون عن نافع">قالون عن نافع</option>
-                            <option value="ورش عن نافع">ورش عن نافع</option>
-                            <option value="حفص عن عاصم">حفص عن عاصم</option>
-                            <option value="الدوري عن أبي عمرو">الدوري عن أبي عمرو</option>
-                        </select>
-                    </div>
+                    <div><label class="form-label dark:text-slate-300">الرواية المقروء بها</label><select id="s-riwaya" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"><option value="قالون عن نافع">قالون عن نافع</option><option value="ورش عن نافع">ورش عن نافع</option><option value="حفص عن عاصم">حفص عن عاصم</option><option value="الدوري عن أبي عمرو">الدوري عن أبي عمرو</option></select></div>
                     <div class="col-span-2"><label class="form-label dark:text-slate-300">الوصول في الحفظ (السورة)</label><select id="s-surah" class="form-input surah-dropdown dark:bg-slate-900 dark:border-slate-600 dark:text-white"><option value="">جاري التحميل...</option></select></div>
                     <div><label class="form-label dark:text-slate-300"> آخر تحديث</label><input type="date" id="s-date" class="form-input dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
                 </div>
             </div>
-            <div class="bg-slate-50 dark:bg-slate-700 border-t dark:border-slate-600 p-4 flex justify-end gap-3 shrink-0">
-                <button onclick="closeStudentModal()" class="btn btn-outline dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"><i class="fas fa-times"></i> إلغاء</button>
-                <button id="btn-save-student" onclick="saveStudent()" class="btn btn-primary"><i class="fas fa-save"></i> حفظ سجل الطالب</button>
-            </div>
+            <div class="bg-slate-50 dark:bg-slate-700 border-t dark:border-slate-600 p-4 flex justify-end gap-3 shrink-0"><button onclick="closeStudentModal()" class="btn btn-outline dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200"><i class="fas fa-times"></i> إلغاء</button><button id="btn-save-student" onclick="saveStudent()" class="btn btn-primary"><i class="fas fa-save"></i> حفظ سجل الطالب</button></div>
         </div>
     </div>
 
