@@ -110,28 +110,43 @@
 <!-- شاشة المراسلة -->
 <div id="messages" class="tab-content max-w-7xl mx-auto transition-opacity duration-300">
     <div class="flex items-center gap-3 mb-6">
-        <div class="p-3 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded-lg"><i class="fas fa-envelope text-2xl"></i></div>
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">صندوق المراسلة الداخلية</h2>
+        <div class="p-3 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded-lg"><i class="fas fa-paper-plane text-2xl"></i></div>
+        <h2 class="text-2xl font-bold text-slate-800 dark:text-white">صندوق المراسلة المتقدم</h2>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 h-[70vh]">
-        <!-- قائمة المعلمين (تظهر للمدير فقط) -->
+        <!-- قائمة المعلمين -->
         <div class="md:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden flex flex-col admin-only">
             <div class="bg-gray-50 dark:bg-slate-700 p-3 border-b dark:border-slate-600 font-bold dark:text-white">المراكز والمعلمين</div>
             <select id="msg-center-filter" class="form-input mx-2 mt-2 dark:bg-slate-900 dark:text-white dark:border-slate-600" onchange="renderMessageContacts()"><option value="">كل المراكز</option></select>
             <div id="msg-contacts" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
         </div>
-        <!-- صندوق الدردشة -->
+        <!-- صندوق المحادثة -->
         <div class="md:col-span-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col relative">
-            <div id="chat-header" class="bg-blue-50 dark:bg-slate-700 p-4 border-b dark:border-slate-600 font-bold text-blue-800 dark:text-blue-200 flex items-center gap-2"><i class="fas fa-user-circle text-2xl"></i> <span id="chat-title">يرجى تحديد معلم للمراسلة</span></div>
-            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50 dark:bg-slate-900/50"></div>
-            <div class="p-4 bg-white dark:bg-slate-800 border-t dark:border-slate-600 flex gap-2">
-                <input type="text" id="msg-input" class="form-input flex-1 dark:bg-slate-700 dark:text-white dark:border-slate-600" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key === 'Enter') sendMessage()">
-                <button onclick="sendMessage()" class="btn btn-primary px-6"><i class="fas fa-paper-plane"></i> إرسال</button>
+            <div id="chat-header" class="bg-blue-50 dark:bg-slate-700 p-4 border-b dark:border-slate-600 font-bold text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                <i class="fas fa-user-circle text-2xl"></i> <span id="chat-title">يرجى تحديد جهة الاتصال</span>
             </div>
-            <!-- غطاء للمدير إذا لم يختر معلماً -->
-            <div id="chat-overlay" class="absolute inset-0 bg-white/80 dark:bg-slate-800/90 flex flex-col items-center justify-center z-10 admin-only">
-                <i class="fas fa-comments text-6xl text-gray-300 dark:text-slate-600 mb-4"></i>
-                <p class="text-gray-500 font-bold">اختر معلماً من القائمة الجانبية لبدء المحادثة</p>
+            
+            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50 dark:bg-slate-900/50 flex flex-col"></div>
+            
+            <!-- أدوات الإرسال والمرفقات -->
+            <div class="p-4 bg-white dark:bg-slate-800 border-t dark:border-slate-600 flex flex-col gap-2">
+                <div id="file-preview-indicator" class="hidden text-sm bg-blue-50 dark:bg-slate-700 text-blue-800 dark:text-blue-200 px-3 py-2 rounded-lg flex items-center justify-between border dark:border-slate-600 border-blue-100">
+                    <div class="flex items-center gap-2"><i class="fas fa-paperclip"></i> <span id="file-name" class="font-bold truncate max-w-xs"></span></div>
+                    <i class="fas fa-times cursor-pointer text-red-500 hover:scale-110 transition-transform" onclick="clearSelectedFile()"></i>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <input type="file" id="msg-attachment" class="hidden" accept="image/*,.pdf" onchange="handleFileSelect(event)">
+                    <button onclick="document.getElementById('msg-attachment').click()" class="p-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-colors" title="إرفاق صورة أو PDF">
+                        <i class="fas fa-paperclip text-xl"></i>
+                    </button>
+                    <input type="text" id="msg-input" class="form-input flex-1 dark:bg-slate-700 dark:text-white dark:border-slate-600" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                    <button onclick="sendMessage()" class="btn btn-primary px-6"><i class="fas fa-paper-plane"></i> إرسال</button>
+                </div>
+            </div>
+
+            <div id="chat-overlay" class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 flex flex-col items-center justify-center z-10 admin-only backdrop-blur-sm">
+                <i class="fas fa-comments text-6xl text-blue-300 dark:text-slate-600 mb-4"></i>
+                <p class="text-gray-600 dark:text-gray-300 font-bold text-lg">اختر معلماً من القائمة الجانبية لبدء المحادثة</p>
             </div>
         </div>
     </div>
@@ -428,6 +443,20 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="card dark:bg-slate-800 dark:border-slate-700 border-2 border-emerald-500 relative overflow-hidden group">
+    <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-500 rounded-bl-full z-0 opacity-20"></div>
+    <div class="card-body relative z-10">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center text-emerald-600"><i class="fas fa-file-invoice text-xl"></i></div>
+            <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">النماذج الإدارية (1 & 2)</h3>
+        </div>
+        <p class="text-slate-500 dark:text-slate-400 text-sm mb-4 h-10">طباعة النماذج المعتمدة لتوثيق التحضير اليومي والتقرير الشهري.</p>
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="printOfficialForm1()" class="btn bg-emerald-600 text-white hover:bg-emerald-700 text-xs py-2 px-1"><i class="fas fa-print"></i> نموذج (1) تحضير</button>
+            <button onclick="printOfficialForm2()" class="btn bg-teal-600 text-white hover:bg-teal-700 text-xs py-2 px-1"><i class="fas fa-print"></i> نموذج (2) تحفيظ</button>
+        </div>
+    </div>
+</div>
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600"><i class="fas fa-list text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">كشوفات المراكز</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-6 h-10">طباعة قوائم رسمية بأسماء المراكز والمساجد الفعالة.</p><div class="grid grid-cols-2 gap-3"><button onclick="printCenters('ذكور')" class="btn btn-outline dark:bg-slate-700 dark:text-blue-300 text-blue-700 border-blue-200 dark:border-blue-800 hover:bg-blue-50"><i class="fas fa-male"></i> مراكز الذكور</button><button onclick="printCenters('إناث')" class="btn btn-outline dark:bg-slate-700 dark:text-pink-300 text-pink-700 border-pink-200 dark:border-pink-800 hover:bg-pink-50"><i class="fas fa-female"></i> مراكز الإناث</button></div></div></div>
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600"><i class="fas fa-file-alt text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">كشف إنجاز مركز</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-6 h-10">استخراج كشف بأسماء طلاب مركز معين.</p><div class="flex gap-3"><select id="report-center" class="form-input flex-1 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white"><option value="">جاري التحميل...</option></select><button onclick="printSingleCenter()" class="btn btn-primary whitespace-nowrap"><i class="fas fa-print"></i> طباعة</button></div></div></div>
                         <div class="card dark:bg-slate-800 dark:border-slate-700"><div class="card-body"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-orange-50 dark:bg-orange-900/30 rounded-full flex items-center justify-center text-orange-600"><i class="fas fa-filter text-xl"></i></div><h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">تقرير مخصص (بالعمر)</h3></div><p class="text-slate-500 dark:text-slate-400 text-sm mb-4 h-10">استخراج كشف بطلاب مركز محدد ضمن فئة عمرية.</p><div class="grid grid-cols-2 gap-2 mb-3"><input type="number" id="rep-age-min" placeholder="من عمر" class="form-input dark:bg-slate-700 dark:border-slate-600 dark:text-white"><input type="number" id="rep-age-max" placeholder="إلى عمر" class="form-input dark:bg-slate-700 dark:border-slate-600 dark:text-white"></div><div class="flex gap-3"><select id="rep-custom-center" class="form-input flex-1 center-dropdown dark:bg-slate-700 dark:border-slate-600 dark:text-white"><option value="">الكل</option></select><button onclick="printCustomReport()" class="btn btn-warning whitespace-nowrap"><i class="fas fa-print"></i> طباعة</button></div></div></div>
