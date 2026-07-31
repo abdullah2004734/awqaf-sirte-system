@@ -92,12 +92,35 @@ function updateUIRoleDisplay() {
     let roleText = 'مدير النظام';
     if(currentUserRole === 'entry') roleText = 'مساعد مدير';
     if(currentUserRole === 'teacher') roleText = 'معلم حلقة';
+    if(currentUserRole === 'viewer') roleText = 'مستعرض (قراءة فقط)';
+    
     document.getElementById('user-role-badge').innerText = roleText;
     
-    // الصلاحيات العادية (مدير ومساعد)
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = (currentUserRole === 'admin' || currentUserRole === 'entry') ? '' : 'none');
-    // الصلاحيات الحساسة (للمدير الأساسي فقط)
+    // الصلاحيات العادية (مدير ومساعد ومستعرض)
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = (currentUserRole === 'admin' || currentUserRole === 'entry' || currentUserRole === 'viewer') ? '' : 'none');
+    // الصلاحيات الحساسة
     document.querySelectorAll('.strict-admin-only').forEach(el => el.style.display = (currentUserRole === 'admin') ? '' : 'none');
+
+    // تفعيل وضع (القراءة فقط) للمستعرض عن طريق إخفاء أزرار الإضافة والتعديل والحذف
+    if(currentUserRole === 'viewer') {
+        document.querySelectorAll('button').forEach(btn => {
+            // استثناء أزرار التنقل والطباعة والبحث والمظهر
+            const isSafeBtn = btn.classList.contains('nav-btn') || 
+                              btn.innerHTML.includes('fa-print') || 
+                              btn.innerHTML.includes('fa-moon') || 
+                              btn.innerHTML.includes('fa-sun') || 
+                              btn.innerHTML.includes('fa-file-excel') || 
+                              btn.getAttribute('onclick')?.includes('showTab') ||
+                              btn.getAttribute('onclick')?.includes('logout') ||
+                              btn.getAttribute('onclick')?.includes('toggleDarkMode') ||
+                              btn.getAttribute('onclick')?.includes('changePage');
+            if(!isSafeBtn) {
+                btn.style.display = 'none';
+            }
+        });
+        // منع التعديل المزدوج للأسماء
+        window.makeEditable = function() { return false; };
+    }
 }
 
 window.onload = async () => {
@@ -666,40 +689,239 @@ function selectChatUser(id, name) {
     renderChatBox();
 }
 
+let currentSelectedFileBase64 = null;
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        currentSelectedFileBase64 = {
+            name: file.name,
+            type: file.type.includes('pdf') ? 'pdf' : 'image',
+            data: e.target.result
+        };
+        document.getElementById('file-name').innerText = file.name;
+        document.getElementById('file-preview-indicator').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearSelectedFile() {
+    currentSelectedFileBase64 = null;
+    document.getElementById('msg-attachment').value = '';
+    document.getElementById('file-preview-indicator').classList.add('hidden');
+}
+
 function renderChatBox() {
     if(!activeChatUserId && currentUserRole !== 'teacher') return;
     const box = document.getElementById('chat-box');
-    const myId = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_teacher_id') || 'unknown' : 'admin';
     const targetId = currentUserRole === 'teacher' ? 'admin' : activeChatUserId;
-    
-    // جلب رقم المعلم الحقيقي إذا كان المستخدم معلماً
-    const actualMyId = currentUserRole === 'teacher' ? (db.teachers.find(t => t.username === jwt_decode_if_needed())?.id || 'teacher') : myId;
-    // لتسهيل الأمر برمجياً بدون تعقيد، نعتمد على أن المراسلة للمعلم تكون مع admin
     
     const chatMsgs = (db.messages || []).filter(m => (m.senderId === activeChatUserId && m.receiverId === 'admin') || (m.senderId === 'admin' && m.receiverId === activeChatUserId) || (currentUserRole === 'teacher' && (m.senderId === targetId || m.receiverId === targetId)));
     
     box.innerHTML = chatMsgs.map(m => {
         const isMe = (currentUserRole === 'teacher' && m.senderId !== 'admin') || (currentUserRole !== 'teacher' && m.senderId === 'admin');
-        const align = isMe ? 'self-end bg-blue-500 text-white rounded-br-none' : 'self-start bg-white dark:bg-slate-700 border dark:border-slate-600 text-slate-800 dark:text-slate-200 rounded-bl-none';
-        return `<div class="max-w-[75%] p-3 rounded-2xl shadow-sm ${align} flex flex-col"><span class="font-bold">${m.text}</span><span class="text-[10px] mt-1 opacity-70" dir="ltr">${m.date}</span></div>`;
+        const align = isMe ? 'self-end bg-blue-600 text-white rounded-br-none' : 'self-start bg-white dark:bg-slate-700 border dark:border-slate-600 text-slate-800 dark:text-slate-200 rounded-bl-none';
+        
+        let attachmentHtml = '';
+        if(m.attachment) {
+            if(m.attachment.type === 'image') {
+                attachmentHtml = `<a href="${m.attachment.data}" target="_blank"><img src="${m.attachment.data}" class="max-w-xs rounded-lg mb-2 border border-white/20 shadow-sm cursor-pointer hover:opacity-90"></a>`;
+            } else if(m.attachment.type === 'pdf') {
+                attachmentHtml = `<a href="${m.attachment.data}" download="${m.attachment.name}" class="flex items-center gap-2 p-3 mb-2 bg-white/10 dark:bg-slate-800 rounded-lg border border-white/20 hover:bg-white/20 transition-colors"><i class="fas fa-file-pdf text-2xl text-red-400"></i><span class="text-sm font-bold truncate w-40" dir="ltr">${m.attachment.name}</span></a>`;
+            }
+        }
+
+        return `<div class="max-w-[75%] p-3 rounded-2xl shadow-sm ${align} flex flex-col">
+            ${attachmentHtml}
+            ${m.text ? `<span class="font-bold text-sm whitespace-pre-wrap">${m.text}</span>` : ''}
+            <span class="text-[10px] mt-1 opacity-70 ${isMe ? 'text-blue-100' : 'text-slate-400'}" dir="ltr">${m.date}</span>
+        </div>`;
     }).join('');
-    box.scrollTop = box.scrollHeight; // النزول لآخر رسالة
+    box.scrollTop = box.scrollHeight;
 }
 
 function sendMessage() {
-    const input = document.getElementById('msg-input'); const text = input.value.trim();
-    if(!text) return;
+    const input = document.getElementById('msg-input'); 
+    const text = input.value.trim();
+    if(!text && !currentSelectedFileBase64) return;
     if(currentUserRole !== 'teacher' && !activeChatUserId) return Toast.fire({ icon: 'warning', title: 'اختر معلماً أولاً' });
     
-    // تحديد هوية المرسل والمستقبل
     let senderId = 'admin'; let receiverId = activeChatUserId;
     if(currentUserRole === 'teacher') {
-        const myTeacher = db.teachers.find(t => t.centerId === localStorage.getItem('awqaf_center_id')); // تقريبي
+        const myTeacher = db.teachers.find(t => t.centerId === localStorage.getItem('awqaf_center_id'));
         senderId = myTeacher ? myTeacher.id : 'teacher'; receiverId = 'admin'; activeChatUserId = 'admin';
     }
     
-    const newMsg = { id: Date.now().toString(), text, senderId, receiverId, date: new Date().toLocaleString('ar-LY', {hour: '2-digit', minute:'2-digit'}) };
+    const newMsg = { 
+        id: Date.now().toString(), 
+        text: text, 
+        attachment: currentSelectedFileBase64,
+        senderId, 
+        receiverId, 
+        date: new Date().toLocaleString('ar-LY', {hour: '2-digit', minute:'2-digit'}) 
+    };
+    
     if(!db.messages) db.messages = []; db.messages.push(newMsg);
     
-    input.value = ''; renderChatBox(); saveDB();
+    input.value = ''; 
+    clearSelectedFile();
+    renderChatBox(); 
+    saveDB();
+}  input.value = ''; renderChatBox(); saveDB();
+}
+// طباعة نموذج رقم (1) تحضير - مطابق لشكل PDF
+function printOfficialForm1() {
+    const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
+    const cid = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : (document.getElementById('attendance-center')?.value || document.getElementById('rep-att-center')?.value);
+    if(!cid) return alert('الرجاء اختيار المركز أولاً من قسم الحضور والغياب أو التقارير.');
+    
+    const center = db.centers.find(c => c.id === cid) || { name: '.....................' };
+    const students = db.students.filter(s => s.centerId === cid && !s.archived);
+    const teacher = db.teachers.find(t => t.centerId === cid) || { name: '.....................' };
+
+    let rows = '';
+    for(let i = 0; i < Math.max(students.length, 15); i++) {
+        const s = students[i] || { name: '', dob: '', surah: '' };
+        rows += `
+            <tr>
+                <td style="border:1px solid #000; padding:5px;">${i+1}</td>
+                <td style="border:1px solid #000; padding:5px; text-align:right; font-weight:bold;">${s.name}</td>
+                <td style="border:1px solid #000; padding:5px;">${s.dob ? calculateAge(s.dob).replace(' سنة', '') : ''}</td>
+                <td style="border:1px solid #000; padding:5px; font-size:10px;">${s.surah || ''}</td>
+                <td style="border:1px solid #000; padding:5px;"></td>
+                ${Array(15).fill('<td style="border:1px solid #000;"></td>').join('')}
+            </tr>
+        `;
+    }
+
+    const html = `
+        <div style="font-family:'Amiri', sans-serif; text-align:center; direction:rtl; color:#000;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                <div style="text-align:right; font-weight:bold; font-size:14px; line-height:1.5;">
+                    <div>وزارة الأوقاف والشؤون الإسلامية</div>
+                    <div>إدارة شؤون القرآن الكريم والسنة النبوية</div>
+                    <div>مكتب أوقاف سرت</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="border:2px solid #000; padding:5px 20px; font-size:18px; font-weight:bold; margin-bottom:5px;">نموذج رقم (1) (تحضير)</div>
+                    <div style="font-size:11px; font-weight:bold;">سجل إداري رسمي لتوثيق حضور وغياب الطلاب بمركز التحفيظ شهرياً</div>
+                    <div style="font-size:11px;">يقوم بتعبئته محفظ المركز، ثم يحفظ ضمن السجلات الرسمية داخل المركز.</div>
+                </div>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; font-weight:bold; margin:15px 0; font-size:14px;">
+                <span>اسم مركز التحفيظ / <span style="text-decoration:underline;">${center.name}</span></span>
+                <span>تقرير عن شهر / <span style="text-decoration:underline;" dir="ltr">${month}</span></span>
+                <span>اسم المحفظ / <span style="text-decoration:underline;">${teacher.name}</span></span>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;" border="1">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="border:1px solid #000; width:30px;">ت</th>
+                        <th rowspan="2" style="border:1px solid #000; width:180px;">اسم الطالب</th>
+                        <th rowspan="2" style="border:1px solid #000; width:60px;">المواليد</th>
+                        <th rowspan="2" style="border:1px solid #000; width:80px;">مقدار حفظ القرآن</th>
+                        <th rowspan="2" style="border:1px solid #000; width:80px;">مقدار حفظ المتون</th>
+                        <th colspan="15" style="border:1px solid #000;">كشف الحضور والغياب</th>
+                    </tr>
+                    <tr>
+                        ${Array.from({length:15}, (_,k)=>`<th style="border:1px solid #000; width:20px; height:20px;">${k+1}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    `;
+    openPrintView(html, true);
+}
+
+// طباعة نموذج رقم (2) تحفيظ - مطابق لشكل PDF
+function printOfficialForm2() {
+    const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
+    const cid = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : (document.getElementById('attendance-center')?.value || document.getElementById('rep-att-center')?.value);
+    if(!cid) return alert('الرجاء اختيار المركز أولاً من قسم الحضور والغياب أو التقارير.');
+
+    const center = db.centers.find(c => c.id === cid) || { name: '.....................' };
+    const teacher = db.teachers.find(t => t.centerId === cid) || { name: '.....................', phone: '..........', period: 'صباحي', certified: 'مجاز', payment: 'مكافأة' };
+    const stdCount = db.students.filter(s => s.centerId === cid && !s.archived).length;
+
+    const html = `
+        <div style="font-family:'Amiri', sans-serif; text-align:center; direction:rtl; color:#000; font-size:14px; line-height:1.8;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+                <div style="text-align:right; font-weight:bold; font-size:15px;">
+                    <div>وزارة الأوقاف والشؤون الإسلامية</div>
+                    <div>إدارة شؤون القرآن الكريم والسنة النبوية</div>
+                    <div>مكتب أوقاف سرت</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="border:2px solid #000; padding:5px 20px; font-size:18px; font-weight:bold; margin-bottom:5px;">نموذج رقم (2) (تحفيظ)</div>
+                    <div style="font-size:11px; font-weight:bold;">سجل إداري رسمي يقوم محفظ المركز بتعبئته شهرياً،</div>
+                    <div style="font-size:11px; font-weight:bold;">ثم يُرفع إلى المشرف المختص للاعتماد والمتابعة.</div>
+                </div>
+            </div>
+            
+            <div style="text-align:center; font-weight:bold; margin-bottom:20px; font-size:16px;">
+                تقرير عن شهر / <span style="text-decoration:underline;" dir="ltr">${month}</span>
+            </div>
+            
+            <div style="text-align:right; font-weight:bold; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">أولاً : البيانات الشخصية والوظيفية</div>
+            
+            <div style="text-align:right; margin-bottom:15px; border:1px solid #000; padding:10px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <span>اسم المحفظ / <strong>${teacher.name}</strong></span>
+                    <span>رقم الهاتف / <strong dir="ltr">${teacher.phone || '............'}</strong></span>
+                    <span>تاريخ التكليف / ............</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <span>اسم مركز التحفيظ / <strong>${center.name}</strong></span>
+                    <span>عدد الطلاب / <strong>${stdCount}</strong></span>
+                </div>
+                
+                <table style="width:100%; border:none; text-align:right; margin-top:15px;">
+                    <tr>
+                        <td style="width:33%;"><strong>صفة تكليف المحفظ:</strong><br>☑ محفظ قرآن وسنة<br>☐ محفظ قرآن فقط<br>☐ معلم سنة فقط</td>
+                        <td style="width:33%;"><strong>فترة التدريس بالمركز:</strong><br>${teacher.period === 'صباحي' ? '☑' : '☐'} الصباحية<br>${teacher.period === 'بعد العصر' ? '☑' : '☐'} العصر<br>${teacher.period === 'بعد المغرب' ? '☑' : '☐'} المغرب</td>
+                        <td style="width:33%;"><strong>الرواية المعتمدة:</strong><br>☑ قالون<br>☐ حفص<br>☐ ورش</td>
+                    </tr>
+                    <tr><td colspan="3" style="height:15px;"></td></tr>
+                    <tr>
+                        <td><strong>نوع التكليف:</strong><br>${teacher.certified === 'مجاز' ? '☑' : '☐'} مجاز<br>${teacher.certified === 'غير مجاز' ? '☑' : '☐'} غير مجاز</td>
+                        <td><strong>طبيعة التكليف:</strong><br>${teacher.payment === 'مكافأة' ? '☑' : '☐'} مكافأة<br>${teacher.payment === 'متطوع' ? '☑' : '☐'} متطوع</td>
+                        <td><strong>طريقة التدريس:</strong><br>☑ تلقيناً<br>☐ قراءة من المصحف</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="text-align:right; font-weight:bold; margin-bottom:5px; margin-top:20px; border-bottom:1px solid #000; display:inline-block;">ثانياً : الحضور والغياب الشهري (للمحفظ)</div>
+            
+            <table style="width:100%; border-collapse:collapse; text-align:center; margin-bottom:30px;" border="1">
+                <thead style="background:#f0f0f0;">
+                    <tr>
+                        <th style="padding:5px; border:1px solid #000;">اليوم والتاريخ</th>
+                        <th style="padding:5px; border:1px solid #000;">وقت الحضور</th>
+                        <th style="padding:5px; border:1px solid #000;">وقت الانصراف</th>
+                        <th style="padding:5px; border:1px solid #000;">اليوم والتاريخ</th>
+                        <th style="padding:5px; border:1px solid #000;">وقت الحضور</th>
+                        <th style="padding:5px; border:1px solid #000;">وقت الانصراف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Array(12).fill(`<tr>
+                        <td style="height:25px; border:1px solid #000;"></td><td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td>
+                        <td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+            
+            <div style="display:flex; justify-content:space-between; margin-top:30px; font-weight:bold; font-size:16px;">
+                <div>توقيع المحفظ: ..........................</div>
+                <div>اسم المشرف: ..........................</div>
+                <div>توقيع المشرف: ..........................</div>
+            </div>
+        </div>
+    `;
+    openPrintView(html, true);
 }
