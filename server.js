@@ -80,8 +80,7 @@ const verifyToken = (req, res, next) => {
         res.sendStatus(403);
     }
 };
-
-// 2. جلب البيانات
+// 2. جلب البيانات (مصحح)
 app.get('/api/data', verifyToken, (req, res) => {
     try {
         const db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
@@ -96,7 +95,9 @@ app.get('/api/data', verifyToken, (req, res) => {
             const filteredData = {
                 centers: db.centers.filter(c => c.id === myCenterId),
                 teachers: db.teachers.filter(t => t.id === req.user.teacherId || t.centerId === myCenterId),
-                students: db.students.filter(s => s.centerId === myCenterId)
+                students: db.students.filter(s => s.centerId === myCenterId),
+                // إصلاح: جلب الرسائل الخاصة بالمعلم والمدير لكي لا تختفي المحادثات
+                messages: (db.messages || []).filter(m => m.senderId === req.user.teacherId || m.receiverId === req.user.teacherId || m.senderId === 'admin' || m.receiverId === 'admin')
             };
             res.setHeader('Content-Type', 'application/json');
             return res.send(JSON.stringify(filteredData));
@@ -106,25 +107,50 @@ app.get('/api/data', verifyToken, (req, res) => {
     }
 });
 
-// 3. حفظ البيانات
+// 3. حفظ البيانات (مصحح لمنع حذف البيانات وحل مشكلة Overwrite)
 app.post('/api/data', verifyToken, (req, res) => {
     try {
         const fullDB = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
         const incomingData = req.body;
 
         if (req.user.role === 'admin' || req.user.role === 'entry') {
-            fs.writeFileSync(DB_FILE, JSON.stringify(incomingData, null, 2));
+            // دمج آمن للبيانات بدلاً من الاستبدال الأعمى لمنع مسح بيانات المعلمين
+            fullDB.centers = incomingData.centers || fullDB.centers;
+            fullDB.teachers = incomingData.teachers || fullDB.teachers;
+            fullDB.assistants = incomingData.assistants || fullDB.assistants;
+            
+            // تحديث الطلاب بأمان
+            if (incomingData.students) {
+                fullDB.students = incomingData.students;
+            }
+
+            // دمج الرسائل الجديدة فقط لكي لا يمسح المدير رسائل المعلمين
+            const existingMsgIds = new Set((fullDB.messages || []).map(m => m.id));
+            const newMsgs = (incomingData.messages || []).filter(m => !existingMsgIds.has(m.id));
+            fullDB.messages = [...(fullDB.messages || []), ...newMsgs];
+
+            fs.writeFileSync(DB_FILE, JSON.stringify(fullDB, null, 2));
             return res.json({ success: true });
         }
 
         if (req.user.role === 'teacher') {
             const myCenterId = req.user.centerId;
+            
+            // تحديث طلاب المعلم فقط دون المساس بطلاب المراكز الأخرى
             const otherStudents = fullDB.students.filter(s => s.centerId !== myCenterId);
             const myIncomingStudents = (incomingData.students || [])
                 .filter(s => s.centerId === myCenterId)
                 .map(s => ({ ...s, centerId: myCenterId }));
 
             fullDB.students = [...otherStudents, ...myIncomingStudents];
+
+            // إصلاح: السماح للمعلم بحفظ رسائله في قاعدة البيانات
+            if (incomingData.messages) {
+                const existingMsgIds = new Set((fullDB.messages || []).map(m => m.id));
+                const newMsgs = incomingData.messages.filter(m => !existingMsgIds.has(m.id));
+                fullDB.messages = [...(fullDB.messages || []), ...newMsgs];
+            }
+
             fs.writeFileSync(DB_FILE, JSON.stringify(fullDB, null, 2));
             return res.json({ success: true });
         }
