@@ -1,29 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+body { font-family: 'Tajawal', sans-serif; }
 
-/* =========================================
-   1. الإعدادات الأساسية والتسلسل الهرمي للخطوط 
-   ========================================= */
-body { 
-    font-family: 'Tajawal', sans-serif; 
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    font-weight: 800; /* إبراز العناوين بشكل عصري */
-    letter-spacing: -0.02em;
-}
-
-/* تخصيص شريط التمرير (Scrollbar) ليكون أكثر أناقة */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; transition: background 0.3s; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 .dark ::-webkit-scrollbar-thumb { background: #475569; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* =========================================
-   2. إعدادات الطباعة 
-   ========================================= */
 @media print {
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
@@ -32,167 +15,41 @@ h1, h2, h3, h4, h5, h6 {
     @page { margin: 1cm; }
 }
 
-/* =========================================
-   3. الحركات (Animations & Transitions)
-   ========================================= */
 .tab-content { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
-.tab-content.active { display: block; opacity: 1; animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-@keyframes fadeIn { 
-    from { opacity: 0; transform: translateY(10px); } 
-    to { opacity: 1; transform: translateY(0); } 
-}
+.tab-content.active { display: block; opacity: 1; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* =========================================
-   4. الأزرار (توحيد لغة التصميم - Consistency)
-   ========================================= */
-.btn { 
-    padding: 0.6rem 1.25rem; 
-    border-radius: 0.5rem; 
-    font-weight: 700; 
-    font-size: 0.95rem; 
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
-    display: inline-flex; 
-    align-items: center; 
-    justify-content: center; 
-    gap: 0.5rem; 
-    cursor: pointer; 
-    border: 2px solid transparent; /* مساحة للإطار في حالة الأزرار المفرغة */
-    outline: none; 
-}
-/* الأزرار الممتلئة (Solid) للإجراءات الأساسية */
-.btn-primary { background-color: #047857; color: white; box-shadow: 0 4px 6px -1px rgba(4, 120, 87, 0.2); }
-.btn-primary:hover { background-color: #065f46; transform: translateY(-1.5px); box-shadow: 0 6px 8px -1px rgba(4, 120, 87, 0.3); }
+.btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.9rem; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; border: none; outline: none; }
+.btn-primary { background-color: #047857; color: white; box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2); }
+.btn-primary:hover { background-color: #065f46; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(4, 120, 87, 0.3); }
+.btn-secondary { background-color: #2563eb; color: white; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+.btn-secondary:hover { background-color: #1d4ed8; transform: translateY(-1px); }
+.btn-danger { background-color: #dc2626; color: white; }
+.btn-danger:hover { background-color: #b91c1c; }
+.btn-warning { background-color: #d97706; color: white; }
+.btn-warning:hover { background-color: #b45309; }
+.btn-outline { background-color: transparent; border: 1px solid #cbd5e1; color: #475569; }
+.btn-outline:hover { background-color: #f8fafc; border-color: #94a3b8; }
 
-.btn-secondary { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
-.btn-secondary:hover { background-color: #1d4ed8; transform: translateY(-1.5px); box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3); }
+.form-input { width: 100%; padding: 0.6rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; background-color: #f8fafc; font-size: 0.95rem; color: #1e293b; transition: all 0.2s; outline: none; }
+.form-input:focus { border-color: #047857; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.1); }
 
-.btn-danger { background-color: #dc2626; color: white; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2); }
-.btn-danger:hover { background-color: #b91c1c; transform: translateY(-1.5px); }
-
-.btn-warning { background-color: #d97706; color: white; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2); }
-.btn-warning:hover { background-color: #b45309; transform: translateY(-1.5px); }
-
-/* الأزرار المفرغة (Outline) للإجراءات الثانوية */
-.btn-outline { background-color: transparent; border-color: #cbd5e1; color: #475569; }
-.btn-outline:hover { background-color: #f8fafc; border-color: #94a3b8; color: #1e293b; transform: translateY(-1px); }
-.dark .btn-outline { border-color: #475569; color: #e2e8f0; }
-.dark .btn-outline:hover { background-color: #1e293b; border-color: #64748b; }
-
-/* =========================================
-   5. الحقول والنماذج (Inputs)
-   ========================================= */
-.form-input { 
-    width: 100%; 
-    padding: 0.65rem 1rem; 
-    border: 1px solid #cbd5e1; 
-    border-radius: 0.5rem; 
-    background-color: #f8fafc; 
-    font-size: 0.95rem; 
-    font-family: inherit;
-    color: #1e293b; 
-    transition: all 0.2s ease-in-out; 
-    outline: none; 
-}
-.form-input:focus { 
-    border-color: #047857; 
-    background-color: #ffffff; 
-    box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.15); /* هالة تركيز أكثر نعومة */
-}
-
-/* =========================================
-   6. القائمة الجانبية (Sidebar Navigation)
-   ========================================= */
-.nav-btn { 
-    width: 100%; 
-    text-align: right; 
-    padding: 0.85rem 1rem; 
-    border-radius: 0.5rem; 
-    margin-bottom: 0.4rem; 
-    font-weight: 700; 
-    color: #94a3b8; 
-    transition: all 0.25s ease; 
-    display: flex; 
-    align-items: center; 
-    gap: 0.8rem; 
-}
-.nav-btn i { width: 22px; text-align: center; font-size: 1.15rem; transition: color 0.2s; }
-.nav-btn:hover { background-color: #1e293b; color: #f8fafc; transform: translateX(-4px); /* حركة خفيفة عند التأشير */ }
-.nav-btn.active { background-color: #047857; color: white; box-shadow: 0 4px 12px rgba(4, 120, 87, 0.3); }
+.nav-btn { width: 100%; text-align: right; padding: 0.8rem 1rem; border-radius: 0.5rem; margin-bottom: 0.3rem; font-weight: 700; color: #94a3b8; transition: all 0.2s; display: flex; align-items: center; gap: 0.8rem; }
+.nav-btn i { width: 20px; text-align: center; font-size: 1.1rem; transition: color 0.2s; }
+.nav-btn:hover { background-color: #1e293b; color: #f8fafc; }
+.nav-btn.active { background-color: #047857; color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
 .nav-btn.active i { color: #a7f3d0; }
 .dark .nav-btn:hover { background-color: #1e293b; }
 
-/* =========================================
-   7. البطاقات (الظلال والمسافات البيضاء)
-   ========================================= */
-.card { 
-    background: white; 
-    border-radius: 1rem; /* زوايا دائرية أكثر نعومة */
-    /* ظلال ناعمة جداً ومتطورة (Soft Drop Shadow) */
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.02); 
-    border: 1px solid #f1f5f9; 
-    overflow: hidden; 
-    transition: box-shadow 0.3s ease;
-}
-.card:hover { box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08); }
-.dark .card { border-color: #334155; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3); }
+.card { background: white; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; }
+.card-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.card-body { padding: 1.5rem; }
 
-.card-header { 
-    padding: 1.25rem 1.75rem; /* مساحات بيضاء متوازنة */
-    border-bottom: 1px solid #f1f5f9; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-}
-.dark .card-header { border-bottom-color: #334155; }
-.card-body { padding: 1.75rem; }
-
-/* =========================================
-   8. الجداول (إبراز العناوين والترتيب)
-   ========================================= */
 table { width: 100%; border-collapse: separate; border-spacing: 0; }
-th { 
-    font-weight: 800; /* وزن خط ثقيل لعناوين الجداول */
-    padding: 1.1rem 1rem; 
-    text-align: right; 
-    font-size: 0.85rem; 
-    text-transform: uppercase; 
-    letter-spacing: 0.05em; 
-    border-bottom: 2px solid #e2e8f0; /* فاصل أوضح للعناوين */
-    color: #475569;
-}
-.dark th { border-bottom-color: #475569; color: #cbd5e1; }
-td { padding: 1.1rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; vertical-align: middle; transition: background-color 0.2s; }
-.dark td { border-bottom-color: #334155; }
+th { font-weight: 700; padding: 1rem; text-align: right; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; }
+td { padding: 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
-tr:hover td { background-color: #f8fafc; } /* تغذية راجعة بصرية عند التمرير على الصف */
-.dark tr:hover td { background-color: #1e293b; }
 
-/* =========================================
-   9. تصميم حالات الفراغ (Empty States)
-   ========================================= */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
-    text-align: center;
-}
-.empty-state i {
-    font-size: 3.5rem;
-    color: #cbd5e1;
-    margin-bottom: 1rem;
-    transition: transform 0.3s ease;
-}
-.empty-state:hover i { transform: scale(1.1); color: #94a3b8; }
-.empty-state h4 { font-size: 1.25rem; color: #475569; margin-bottom: 0.5rem; }
-.empty-state p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 1.5rem; max-width: 300px; }
-.dark .empty-state h4 { color: #cbd5e1; }
-.dark .empty-state p { color: #64748b; }
-
-/* =========================================
-   10. الشهادات والبطاقات (للطباعة)
-   ========================================= */
 .certificate { border: 10px solid #065f46; padding: 40px; text-align: center; background: #fff url('assets/images/arabesque.png'); position: relative; min-height: 600px; color: #000; }
 .certificate::after { content: ''; position: absolute; top: 15px; left: 15px; right: 15px; bottom: 15px; border: 2px dashed #047857; pointer-events: none; }
 
@@ -204,27 +61,3 @@ tr:hover td { background-color: #f8fafc; } /* تغذية راجعة بصرية �
 .id-card-body strong { color: #047857; }
 .id-card-footer { text-align: center; font-size: 9px; background: #065f46; color: #fff; padding: 3px; border-radius: 4px; }
 .photo-box { width: 2.2cm; height: 2.8cm; border: 1px dashed #065f46; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8; background-color: rgba(255,255,255,0.7); }
-
-/* =========================================
-   11. التجاوب مع الشاشات (Responsiveness)
-   ========================================= */
-@media (max-width: 768px) {
-    .card-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-    .card-header .btn, .card-header .form-input { width: 100%; }
-    
-    /* تحسين عرض الجداول في الهواتف */
-    .overflow-x-auto {
-        -webkit-overflow-scrolling: touch;
-        margin-bottom: 1rem;
-    }
-    table th, table td { white-space: nowrap; padding: 0.85rem; }
-    
-    /* إخفاء القائمة الجانبية في الشاشات الصغيرة (تمهيداً لزر الـ Hamburger) */
-    nav.w-64 {
-        position: fixed;
-        z-index: 40;
-        transform: translateX(100%); /* مخفية لليمين */
-        transition: transform 0.3s ease-in-out;
-    }
-    nav.w-64.sidebar-open { transform: translateX(0); }
-}
