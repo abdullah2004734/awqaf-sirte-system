@@ -4,7 +4,6 @@ let editModes = { centerId: null, teacherId: null, studentId: null };
 let myCharts = {};
 const ITEMS_PER_PAGE = 10;
 let currentPage = { centers: 1, teachers: 1, students: 1 };
-let currentSelectedFileBase64 = null;
 
 const Toast = Swal.mixin({
     toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
@@ -39,14 +38,23 @@ function filterCentersByGender(dropdownId, genderType) {
     if(!dropdown) return;
     const currentVal = dropdown.value;
     let html = '<option value="">-- يرجى الاختيار --</option>';
-    db.centers.filter(c => c.type === genderType).forEach(c => html += `<option value="${c.id}">${c.name} (${c.type})</option>`);
+    
+    // التصفية بناءً على نوع المركز حصراً بدون مزدوج
+    db.centers.filter(c => c.type === genderType).forEach(c => {
+        html += `<option value="${c.id}">${c.name} (${c.type})</option>`;
+    });
+    
     dropdown.innerHTML = html;
-    if(db.centers.find(c => c.id === currentVal && c.type === genderType)) dropdown.value = currentVal; 
+    if(db.centers.find(c => c.id === currentVal && c.type === genderType)) {
+        dropdown.value = currentVal; 
+    }
 }
 
 async function fetchDB() {
     try {
         const response = await fetch('/api/data', { method: 'GET', headers: getAuthHeaders() });
+        
+        // السيرفر يطرد المستخدم فقط إذا انتهت الصلاحية فعلاً (الخطأ 401 أو 403)
         if (response.status === 401 || response.status === 403) {
             if(currentUserRole !== 'guest') {
                 logout();
@@ -54,17 +62,19 @@ async function fetchDB() {
             }
             return;
         }
+        
         if (!response.ok) throw new Error('السيرفر قيد التهيئة');
+        
         db = await response.json();
         renderAll();
     } catch (error) {
         console.error('خطأ في الاتصال:', error);
+        // تم إزالة كود الطرد العشوائي من هنا!
         Toast.fire({ icon: 'info', title: 'جاري الاتصال بالسحابة.. لا تقلق بياناتك آمنة.' });
     }
 }
 
 async function saveDB() {
-    if(currentUserRole === 'viewer') return; // المستعرض لا يمكنه الحفظ
     populateCenterDropdowns(); renderCenters(); renderTeachers(); renderStudents(); renderArchive();
     if(document.getElementById('dashboard').classList.contains('active')) renderDashboard();
     try {
@@ -82,29 +92,12 @@ function updateUIRoleDisplay() {
     let roleText = 'مدير النظام';
     if(currentUserRole === 'entry') roleText = 'مساعد مدير';
     if(currentUserRole === 'teacher') roleText = 'معلم حلقة';
-    if(currentUserRole === 'viewer') roleText = 'مستعرض (قراءة فقط)';
-    
     document.getElementById('user-role-badge').innerText = roleText;
     
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = (currentUserRole === 'admin' || currentUserRole === 'entry' || currentUserRole === 'viewer') ? '' : 'none');
+    // الصلاحيات العادية (مدير ومساعد)
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = (currentUserRole === 'admin' || currentUserRole === 'entry') ? '' : 'none');
+    // الصلاحيات الحساسة (للمدير الأساسي فقط)
     document.querySelectorAll('.strict-admin-only').forEach(el => el.style.display = (currentUserRole === 'admin') ? '' : 'none');
-
-    // تعطيل أزرار التعديل والإضافة للمستعرض
-    if(currentUserRole === 'viewer') {
-        document.querySelectorAll('button').forEach(btn => {
-            const isSafeBtn = btn.classList.contains('nav-btn') || 
-                              btn.innerHTML.includes('fa-print') || 
-                              btn.innerHTML.includes('fa-moon') || 
-                              btn.innerHTML.includes('fa-sun') || 
-                              btn.innerHTML.includes('fa-file-excel') || 
-                              btn.getAttribute('onclick')?.includes('showTab') ||
-                              btn.getAttribute('onclick')?.includes('logout') ||
-                              btn.getAttribute('onclick')?.includes('toggleDarkMode') ||
-                              btn.getAttribute('onclick')?.includes('changePage');
-            if(!isSafeBtn) btn.style.display = 'none';
-        });
-        window.makeEditable = function() { return false; };
-    }
 }
 
 window.onload = async () => {
@@ -128,13 +121,8 @@ async function login() {
         if(data.success) {
             localStorage.setItem('awqaf_token', data.token);
             localStorage.setItem('awqaf_auth', data.role);
-            if(data.role === 'teacher') {
-                localStorage.setItem('awqaf_center_id', data.centerId);
-                localStorage.setItem('awqaf_teacher_id', data.teacherId);
-            } else {
-                localStorage.removeItem('awqaf_center_id');
-                localStorage.removeItem('awqaf_teacher_id');
-            }
+            if(data.role === 'teacher') localStorage.setItem('awqaf_center_id', data.centerId);
+            else localStorage.removeItem('awqaf_center_id');
             currentUserRole = data.role;
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('main-app').classList.remove('hidden');
@@ -143,11 +131,11 @@ async function login() {
             initApp();
             Toast.fire({ icon: 'success', title: 'مرحباً بك في المنظومة' });
         } else { Swal.fire({ icon: 'error', title: 'خطأ', text: 'بيانات الدخول غير صحيحة!', confirmButtonColor: '#047857' }); }
-    } catch(err) { Swal.fire({ icon: 'error', title: 'خطأ اتصال', text: 'تأكد من تشغيل السيرفر', confirmButtonColor: '#047857' }); }
+    } catch(err) { Swal.fire({ icon: 'error', title: 'خطأ اتصال', text: 'تأكد من تشغيل السيرفر أو الاتصال بالإنترنت', confirmButtonColor: '#047857' }); }
 }
 
 function logout() {
-    localStorage.removeItem('awqaf_token'); localStorage.removeItem('awqaf_auth'); localStorage.removeItem('awqaf_current_tab'); localStorage.removeItem('awqaf_center_id'); localStorage.removeItem('awqaf_teacher_id');
+    localStorage.removeItem('awqaf_token'); localStorage.removeItem('awqaf_auth'); localStorage.removeItem('awqaf_current_tab'); localStorage.removeItem('awqaf_center_id'); 
     currentUserRole = 'guest'; document.getElementById('main-app').classList.add('hidden'); document.getElementById('login-screen').classList.remove('hidden'); document.getElementById('password').value = '';
 }
 
@@ -179,7 +167,7 @@ function showTab(tabId) {
     if(tabElement) tabElement.classList.add('active'); if(navElement) navElement.classList.add('active');
     localStorage.setItem('awqaf_current_tab', tabId);
     if(tabId === 'dashboard') renderDashboard();
-    if(tabId === 'attendance') renderAttendanceTable(); 
+    if(tabId === 'attendance') renderAttendanceTable(); // <--- أضف هذا السطر هنا لتحديث الجدول عند فتح التبويب
 }
 
 function renderAll() { 
@@ -198,8 +186,8 @@ function populateCenterDropdowns() {
         dropdown.innerHTML = html;
         if(currentVal) dropdown.value = currentVal; 
     });
-    filterCentersByGender('t-center', document.getElementById('t-type')?.value === 'معلم' ? 'ذكور' : 'إناث');
-    filterCentersByGender('s-center', document.getElementById('s-gender')?.value === 'ذكر' ? 'ذكور' : 'إناث');
+    filterCentersByGender('t-center', document.getElementById('t-type').value === 'معلم' ? 'ذكور' : 'إناث');
+    filterCentersByGender('s-center', document.getElementById('s-gender').value === 'ذكر' ? 'ذكور' : 'إناث');
 }
 
 function changePage(type, step) { currentPage[type] += step; if(type === 'centers') renderCenters(); else if(type === 'teachers') renderTeachers(); else if(type === 'students') renderStudents(); }
@@ -231,12 +219,12 @@ function renderDashboard() {
 
     const mCount = activeStudents.filter(s => s.gender === 'ذكر').length; const fCount = activeStudents.filter(s => s.gender === 'أنثى').length;
     if(myCharts.gender) myCharts.gender.destroy();
-    myCharts.gender = new Chart(document.getElementById('genderChart'), { type: 'doughnut', data: { labels: ['ذكور', 'إناث'], datasets: [{ data: [mCount, fCount], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 0 }] }, options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels:{color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} } }, maintainAspectRatio: false } });
+    myCharts.gender = new Chart(document.getElementById('genderChart'), { type: 'doughnut', data: { labels: ['ذكور', 'إناث'], datasets: [{ data: [mCount, fCount], backgroundColor: ['#047857', '#fbbf24'], borderWidth: 0 }] }, options: { cutout: '60%', plugins: { legend: { position: 'bottom', labels:{color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} } }, maintainAspectRatio: false } });
 
     let centerCounts = {}; activeStudents.forEach(s => { centerCounts[s.centerId] = (centerCounts[s.centerId] || 0) + 1; });
     let sortedCenters = Object.keys(centerCounts).map(id => { return { name: db.centers.find(x => x.id === id)?.name || 'غير محدد', count: centerCounts[id] }; }).sort((a,b) => b.count - a.count).slice(0, 5); 
     if(myCharts.centers) myCharts.centers.destroy();
-    myCharts.centers = new Chart(document.getElementById('centersChart'), { type: 'bar', data: { labels: sortedCenters.map(x => x.name), datasets: [{ label: 'عدد الطلبة', data: sortedCenters.map(x => x.count), backgroundColor: '#3b82f6', borderRadius: 6 }] }, options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: {stepSize: 1, color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} }, x: {ticks: {color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'}} }, maintainAspectRatio: false } });
+    myCharts.centers = new Chart(document.getElementById('centersChart'), { type: 'bar', data: { labels: sortedCenters.map(x => x.name), datasets: [{ label: 'عدد الطلبة', data: sortedCenters.map(x => x.count), backgroundColor: '#3b82f6', borderRadius: 4 }] }, options: { plugins: { legend: { display:false } }, scales: { y: { beginAtZero: true, ticks: {stepSize: 1, color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'} }, x: {ticks: {color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155'}} }, maintainAspectRatio: false } });
 }
 
 function openCenterModal() { cancelEditCenter(); document.getElementById('center-modal-title').innerHTML = '<i class="fas fa-building ml-2 text-emerald-600"></i>تسجيل مركز جديد'; document.getElementById('centerModal').classList.remove('hidden'); }
@@ -266,8 +254,11 @@ function renderCenters() {
     pagedData.forEach((c, i) => {
         const actualIndex = startIdx + i + 1; const studentsCount = db.students.filter(s => s.centerId === c.id && !s.archived).length;
         const typeStyle = c.type === 'إناث' ? 'bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 border-pink-200 dark:border-pink-800' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+        
+        // تحديد الكلمة تلقائياً حسب نوع المركز
         const studentLabel = c.type === 'ذكور' ? 'طالب' : 'طالبة';
-        const btnHtml = (currentUserRole === 'admin' || currentUserRole === 'entry') ? `<button onclick="editCenter('${c.id}')" class="text-blue-500 hover:text-blue-700 mx-2 transition-colors"><i class="fas fa-edit"></i></button><button onclick="deleteCenter('${c.id}')" class="text-red-500 hover:text-red-700 mx-2 transition-colors"><i class="fas fa-trash"></i></button>` : '-';
+        
+        const btnHtml = currentUserRole === 'admin' ? `<button onclick="editCenter('${c.id}')" class="text-blue-500 hover:text-blue-700 mx-2 transition-colors"><i class="fas fa-edit"></i></button><button onclick="deleteCenter('${c.id}')" class="text-red-500 hover:text-red-700 mx-2 transition-colors"><i class="fas fa-trash"></i></button>` : '-';
         tbody.innerHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><td class="text-center font-bold text-gray-500 dark:text-slate-400 py-3">${actualIndex}</td><td class="font-bold text-slate-700 dark:text-slate-200">${c.name}</td><td class="text-center"><span class="px-3 py-1 rounded-full text-xs font-bold border ${typeStyle}">${c.type}</span></td><td class="text-center font-bold text-emerald-600 dark:text-emerald-400">${studentsCount} ${studentLabel}</td><td class="text-center text-lg">${btnHtml}</td></tr>`;
     });
     renderPaginationControls('centers', currentPage.centers, totalPages, filtered.length, startIdx, startIdx + pagedData.length);
@@ -299,14 +290,14 @@ function renderTeachers() {
     tbody.innerHTML = '';
     pagedData.forEach(t => {
         const center = db.centers.find(c => c.id === t.centerId)?.name || '<span class="text-red-400">غير محدد</span>';
-        const adminBtns = (currentUserRole === 'admin' || currentUserRole === 'entry') ? `<button onclick="editTeacher('${t.id}')" class="text-blue-500 hover:text-blue-700 mx-2"><i class="fas fa-edit"></i></button><button onclick="deleteTeacher('${t.id}')" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash"></i></button>` : '-';
+        const adminBtns = currentUserRole === 'admin' ? `<button onclick="editTeacher('${t.id}')" class="text-blue-500 hover:text-blue-700 mx-2"><i class="fas fa-edit"></i></button><button onclick="deleteTeacher('${t.id}')" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash"></i></button>` : '-';
         tbody.innerHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors py-2"><td class="font-bold text-slate-700 dark:text-slate-200">${t.name} <div class="text-xs text-gray-400 font-sans">يوزر: ${t.username || 'غير محدد'}</div></td><td class="font-sans text-gray-500 dark:text-slate-400">${t.dob ? t.dob : '-'}</td><td class="text-center"><span class="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 px-3 py-1 font-bold border border-gray-200 dark:border-slate-600 rounded-full text-xs">${t.type}</span></td><td class="text-center text-sm font-bold ${t.certified==='مجاز'?'text-emerald-600':'text-orange-500'}">${t.certified||'-'}</td><td class="font-sans dark:text-slate-300" dir="ltr">${t.phone || '-'}</td><td class="font-bold text-emerald-700 dark:text-emerald-400">${center}<div class="text-xs text-slate-400">${t.period||''}</div></td><td class="text-center text-lg">${adminBtns}</td></tr>`;
     });
     renderPaginationControls('teachers', currentPage.teachers, totalPages, filtered.length, startIdx, startIdx + pagedData.length);
 }
 
 window.makeEditable = function(el, id, field) {
-    if(el.querySelector('input') || currentUserRole === 'teacher' || currentUserRole === 'viewer') return;
+    if(el.querySelector('input') || currentUserRole === 'teacher') return;
     const originalText = el.innerText.trim();
     el.innerHTML = `<input type="text" class="form-input text-sm px-2 py-1 m-0 border-blue-500 w-full dark:bg-slate-800 dark:text-white" value="${originalText}" onblur="cancelInline(this, '${originalText}')" onkeydown="if(event.key === 'Enter') saveInline(this, '${id}', '${field}')" onclick="event.stopPropagation()">`;
     const input = el.querySelector('input'); input.focus(); input.select();
@@ -334,7 +325,7 @@ function closeStudentModal() { document.getElementById('studentModal').classList
 function saveStudent() {
     const currentSurah = document.getElementById('s-surah').value; const currentDate = document.getElementById('s-date').value || new Date().toISOString().split('T')[0];
     let targetCenterId = document.getElementById('s-center').value;
-    if(currentUserRole === 'teacher') targetCenterId = localStorage.getItem('awqaf_center_id'); 
+    if(currentUserRole === 'teacher') targetCenterId = localStorage.getItem('awqaf_center_id'); // تأكيد أمني إضافي للمعلم
     let s = { id: editModes.studentId || Date.now().toString(), name: document.getElementById('s-name').value.trim(), dob: document.getElementById('s-dob').value, gender: document.getElementById('s-gender').value, centerId: targetCenterId, riwaya: document.getElementById('s-riwaya').value, surah: currentSurah, date: currentDate, archived: false, completionDate: '', history: [] };
     if(!s.name || !s.centerId) return Toast.fire({ icon: 'warning', title: 'يجب إدخال اسم الطالب واختيار المركز' });
     if (editModes.studentId) { const index = db.students.findIndex(x => x.id === editModes.studentId); const oldStudent = db.students[index]; s.archived = oldStudent.archived; s.completionDate = oldStudent.completionDate; s.history = oldStudent.history || []; const lastRecord = s.history.length > 0 ? s.history[s.history.length - 1] : null; if (!lastRecord || lastRecord.surah !== currentSurah) { s.history.push({ surah: currentSurah, date: currentDate }); } db.students[index] = s; } 
@@ -362,7 +353,7 @@ function renderStudents() {
     tbody.innerHTML = '';
     pagedData.forEach(s => {
         const center = db.centers.find(c => c.id === s.centerId)?.name || '<span class="text-red-400">غير محدد</span>';
-        tbody.innerHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><td class="font-bold text-slate-800 dark:text-slate-200 py-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 relative" title="انقر مرتين للتعديل السريع" ondblclick="makeEditable(this, '${s.id}', 'name')">${s.name}</td><td class="text-slate-600 dark:text-slate-400">${calculateAge(s.dob)}</td><td class="font-bold text-emerald-700 dark:text-emerald-400">${center}</td><td class="font-bold text-blue-700 dark:text-blue-400"><span class="bg-blue-50 dark:bg-slate-800 px-3 py-1 rounded-full">${s.surah ? 'سورة ' + s.surah : 'بدون'}</span></td><td class="text-center text-lg whitespace-nowrap"><button onclick="printIDCard('${s.id}')" class="text-teal-500 hover:text-teal-700 mx-1" title="بطاقة تعريف"><i class="fas fa-id-card"></i></button><button onclick="printCertificate('${s.id}')" class="text-yellow-500 hover:text-yellow-600 mx-1" title="شهادة"><i class="fas fa-award"></i></button><button onclick="editStudent('${s.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="تعديل شامل"><i class="fas fa-edit"></i></button>${(currentUserRole === 'admin' || currentUserRole === 'entry') ? `<button onclick="graduateStudent('${s.id}')" class="text-orange-500 hover:text-orange-700 mx-1" title="ختم القرآن"><i class="fas fa-graduation-cap"></i></button><button onclick="deleteStudentFinal('${s.id}')" class="text-red-500 hover:text-red-700 mx-1" title="حذف"><i class="fas fa-trash"></i></button>` : ''}</td></tr>`;
+        tbody.innerHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"><td class="font-bold text-slate-800 dark:text-slate-200 py-3 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 relative" title="انقر مرتين للتعديل السريع" ondblclick="makeEditable(this, '${s.id}', 'name')">${s.name}</td><td class="text-slate-600 dark:text-slate-400">${calculateAge(s.dob)}</td><td class="font-bold text-emerald-700 dark:text-emerald-400">${center}</td><td class="font-bold text-blue-700 dark:text-blue-400"><span class="bg-blue-50 dark:bg-slate-800 px-3 py-1 rounded-full">${s.surah ? 'سورة ' + s.surah : 'بدون'}</span></td><td class="text-center text-lg whitespace-nowrap"><button onclick="printIDCard('${s.id}')" class="text-teal-500 hover:text-teal-700 mx-1" title="بطاقة تعريف"><i class="fas fa-id-card"></i></button><button onclick="printCertificate('${s.id}')" class="text-yellow-500 hover:text-yellow-600 mx-1" title="شهادة"><i class="fas fa-award"></i></button><button onclick="editStudent('${s.id}')" class="text-blue-500 hover:text-blue-700 mx-1" title="تعديل شامل"><i class="fas fa-edit"></i></button>${currentUserRole === 'admin' ? `<button onclick="graduateStudent('${s.id}')" class="text-orange-500 hover:text-orange-700 mx-1" title="ختم القرآن"><i class="fas fa-graduation-cap"></i></button><button onclick="deleteStudentFinal('${s.id}')" class="text-red-500 hover:text-red-700 mx-1" title="حذف"><i class="fas fa-trash"></i></button>` : ''}</td></tr>`;
     });
     renderPaginationControls('students', currentPage.students, totalPages, filtered.length, startIdx, startIdx + pagedData.length);
 }
@@ -402,11 +393,11 @@ function exportToExcel(tableId, sheetName) {
 function exportData() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db)); const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "Awqaf_Sirte_Backup_" + new Date().toISOString().split('T')[0] + ".json"); document.body.appendChild(dl); dl.click(); dl.remove(); }
 function importData(event) { const file = event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); if(imported.centers && imported.students) { db = imported; saveDB(); Swal.fire({ icon: 'success', title: 'استعادة ناجحة', confirmButtonColor: '#047857' }).then(() => window.location.reload()); } else throw new Error('ملف خاطئ'); } catch(err) { Swal.fire({ icon: 'error', title: 'خطأ', text: 'الملف تالف' }); } }; reader.readAsText(file); }
 
-function openPrintView(content, skipHeader = false, customCss = '') {
+function openPrintView(content, skipHeader = false) {
     const printArea = document.getElementById('print-area'); const dateStr = new Date().toLocaleString('ar-LY');
     const footer = skipHeader ? '' : `<div style="margin-top: 40px; text-align: right; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight:bold;">طبع بواسطة منظومة شؤون المراكز - تاريخ الطباعة: ${dateStr}</div>`;
     const header = skipHeader ? '' : `<div style="text-align:center; margin-bottom:30px; border-bottom:3px double #1e293b; padding-bottom:15px;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Emblem_of_Libya.svg/200px-Emblem_of_Libya.svg.png" style="width: 70px; margin: 0 auto 10px; filter: grayscale(100%);"><h2 style="font-size:22px; font-weight:bold; font-family:'Amiri', serif; margin:0 0 5px 0;">وزارة الأوقاف والشؤون الإسلامية</h2><h3 style="font-size:18px; font-weight:bold; margin:0 0 5px 0; color:#334155;">مكتب أوقاف سرت</h3><h4 style="font-size:16px; font-weight:bold; margin:0; color:#475569;">قسم القرآن الكريم والسنة النبوية</h4></div>`;
-    printArea.innerHTML = customCss + header + content + footer; printArea.classList.remove('hidden'); window.print(); printArea.classList.add('hidden');
+    printArea.innerHTML = header + content + footer; printArea.classList.remove('hidden'); window.print(); printArea.classList.add('hidden');
 }
 
 function printCenters(targetType) {
@@ -422,6 +413,7 @@ function printSingleCenter() {
     const students = db.students.filter(s => s.centerId === cid && !s.archived); 
     const staff = db.teachers.filter(t => t.centerId === cid);
     
+    // تحديد المسمى تلقائياً حسب نوع المركز
     const labelSingle = center.type === 'ذكور' ? 'طالب' : 'طالبة';
     const labelPlural = center.type === 'ذكور' ? 'الطلاب' : 'الطالبات';
 
@@ -482,9 +474,9 @@ function printIDCard(id) {
     const html = `<div style="display:flex; justify-content:center; padding-top: 50px;"><div class="id-card"><div class="id-card-header"><img src="assets/images/emblem.png" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Emblem_of_Libya.svg/200px-Emblem_of_Libya.svg.png'"><h4>وزارة الأوقاف والشؤون الإسلامية</h4><h4 style="color:#000;">مكتب أوقاف سرت</h4></div><div class="id-card-body"><div style="flex:1; padding-left:10px;"><div style="margin-bottom:4px;"><strong>الاسم:</strong> ${s.name}</div><div style="margin-bottom:4px;"><strong>المركز:</strong> ${c.name}</div><div><strong>الرواية:</strong> ${s.riwaya || 'قالون'}</div></div><div class="photo-box">صورة <br>شخصية</div></div><div class="id-card-footer">قسم القرآن الكريم والسنة النبوية</div></div></div>`;
     openPrintView(html, true);
 }
-
+// ===================== قسم الحضور والغياب الشهري =====================
 document.addEventListener("DOMContentLoaded", () => {
-    const today = new Date().toISOString().slice(0, 7); 
+    const today = new Date().toISOString().slice(0, 7); // تنسيق YYYY-MM
     const attMonthInput = document.getElementById('attendance-month');
     const repAttMonthInput = document.getElementById('rep-att-month');
     if(attMonthInput) attMonthInput.value = today;
@@ -499,13 +491,16 @@ function renderAttendanceTable() {
     
     let students = db.students.filter(s => !s.archived);
     
+    // إذا كان المستخدم معلماً، نجبره على رؤية مركزه فقط
     if (currentUserRole === 'teacher') {
         const myCenterId = localStorage.getItem('awqaf_center_id');
         students = students.filter(s => s.centerId === myCenterId);
     } 
+    // أما إذا كان مديراً، فنقوم بفلترة الطلاب حسب المركز الذي اختاره من القائمة
     else if (selectedCenterId) {
         students = students.filter(s => s.centerId === selectedCenterId);
     } else {
+        // إذا لم يختار المدير أي مركز بعد
         tbody.innerHTML = `<tr><td colspan="5" class="text-center py-12 text-gray-400 font-bold"><i class="fas fa-arrow-up text-xl mb-2 block"></i>الرجاء اختيار المركز لعرض طلابه وسجل حضورهم.</td></tr>`;
         return;
     }
@@ -545,19 +540,21 @@ function renderAttendanceTable() {
 }
 
 function updateAttendance(studentId, month, field, value) {
-    if(currentUserRole === 'viewer') return Toast.fire({ icon: 'error', title: 'صلاحيات قراءة فقط' });
     const student = db.students.find(s => s.id === studentId);
     if(student) {
         if(!student.attendance) student.attendance = {};
         if(!student.attendance[month]) student.attendance[month] = { present: 0, absent: 0, excused: 0 };
+        
         student.attendance[month][field] = parseInt(value) || 0;
-        saveDB(); 
+        saveDB(); // حفظ تلقائي في قاعدة البيانات والسيرفر
         Toast.fire({ icon: 'success', title: 'تم تحديث وحفظ السجل' });
     }
 }
 
 function printAttendanceSheet() {
     const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
+    
+    // جلب المركز من شاشة الحضور أو من شاشة التقارير أيهما قيد الاستخدام
     const centerSelectAtt = document.getElementById('attendance-center');
     const centerSelectRep = document.getElementById('rep-att-center');
     const selectedCenterId = (centerSelectAtt && centerSelectAtt.value) ? centerSelectAtt.value : (centerSelectRep ? centerSelectRep.value : '');
@@ -577,6 +574,8 @@ function printAttendanceSheet() {
 
    const centerId = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : selectedCenterId;
     const center = db.centers.find(c => c.id === centerId) || { name: 'المركز المحدد', type: 'ذكور' };
+    
+    // تكييف التسمية في ورقة الطباعة تلقائياً
     const studentLabel = center.type === 'ذكور' ? 'طالب' : 'طالبة';
 
     let html = `
@@ -588,6 +587,7 @@ function printAttendanceSheet() {
             <div>إجمالي عدد الطلاب المسجلين بالمركز: <span style="color:#047857;">${students.length} ${studentLabel}</span></div>
         </div>
         <h3 style="font-size:18px; font-weight:bold; margin-bottom:15px; text-align:center; background:#e2e8f0; padding:10px;">كشف الحضور والغياب الشهري المعتمد</h3>
+...
         <table style="width:100%; border-collapse:collapse; text-align:center; font-size:14px;" border="1">
             <thead style="background:#f1f5f9;">
                 <tr>
@@ -622,81 +622,40 @@ function printAttendanceSheet() {
     html += `</tbody></table>`;
     openPrintView(html);
 }
-
-// =================== الصلاحيات والمساعدين (C# Style) ===================
+// =================== الصلاحيات والمساعدين ===================
 function renderPermissions() {
     if(currentUserRole !== 'admin') return;
     const tBody = document.getElementById('perm-teachers-list');
     tBody.innerHTML = db.teachers.map(t => `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700"><td class="p-2 font-bold dark:text-slate-200">${t.name} <span class="text-xs text-blue-500">(${t.type})</span></td><td class="p-2 font-sans text-emerald-600 dark:text-emerald-400">${t.username || '-'}</td><td class="p-2 font-sans text-red-500">${t.password || '-'}</td></tr>`).join('');
     
     const aBody = document.getElementById('perm-assistants-list');
-    aBody.innerHTML = (db.assistants || []).map(a => {
-        const roleBadge = a.role === 'viewer' ? '<span class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded font-bold border">مستعرض (قراءة)</span>' : '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-bold border border-emerald-200">مساعد مدير (تعديل)</span>';
-        return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700"><td class="p-2 font-bold dark:text-slate-200">${a.name}</td><td class="p-2">${roleBadge}</td><td class="p-2 font-sans text-blue-600 dark:text-blue-400">${a.username}</td><td class="p-2 text-center"><button onclick="deleteAssistant('${a.id}')" class="text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded"><i class="fas fa-trash"></i></button></td></tr>`;
-    }).join('');
+    aBody.innerHTML = (db.assistants || []).map(a => `<tr class="hover:bg-slate-50 dark:hover:bg-slate-700"><td class="p-2 font-bold dark:text-slate-200">${a.name}</td><td class="p-2 font-sans text-emerald-600 dark:text-emerald-400">${a.username}</td><td class="p-2 text-center"><button onclick="deleteAssistant('${a.id}')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></td></tr>`).join('');
 }
-
 function saveAssistant() {
-    const name = document.getElementById('ast-name').value.trim(); 
-    const userPass = document.getElementById('ast-user').value.trim();
-    const role = document.getElementById('ast-role').value;
-    if(!name || !userPass) return Toast.fire({ icon: 'warning', title: 'يرجى تعبئة الحقول المطلوبة' });
-    
+    const name = document.getElementById('ast-name').value.trim(); const userPass = document.getElementById('ast-user').value.trim();
+    if(!name || !userPass) return Toast.fire({ icon: 'warning', title: 'يرجى تعبئة الحقول' });
     if(!db.assistants) db.assistants = [];
-    const exists = db.assistants.find(a => a.username === userPass);
-    if(exists) return Toast.fire({ icon: 'error', title: 'هذا المستخدم موجود مسبقاً' });
-
-    db.assistants.push({ id: Date.now().toString(), name, username: userPass, password: userPass, role });
-    
-    document.getElementById('ast-name').value = ''; 
-    document.getElementById('ast-user').value = '';
-    renderPermissions(); saveDB(); 
-    Toast.fire({ icon: 'success', title: 'تمت إضافة المستخدم بنجاح' });
+    db.assistants.push({ id: Date.now().toString(), name, username: userPass, password: userPass });
+    document.getElementById('ast-name').value = ''; document.getElementById('ast-user').value = '';
+    renderPermissions(); saveDB(); Toast.fire({ icon: 'success', title: 'تم إضافة المساعد' });
 }
-
 function deleteAssistant(id) {
-    Swal.fire({ title: 'تأكيد الحذف', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'نعم', cancelButtonText: 'إلغاء' }).then((result) => { 
-        if (result.isConfirmed) {
-            db.assistants = db.assistants.filter(a => a.id !== id);
-            renderPermissions(); saveDB(); Toast.fire({ icon: 'success', title: 'تم حذف المستخدم' });
-        } 
-    });
+    db.assistants = db.assistants.filter(a => a.id !== id);
+    renderPermissions(); saveDB(); Toast.fire({ icon: 'success', title: 'تم الحذف' });
 }
 
-// =================== المراسلة الداخلية (مع الملفات) ===================
+// =================== المراسلة الداخلية ===================
 let activeChatUserId = null;
-
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        currentSelectedFileBase64 = {
-            name: file.name,
-            type: file.type.includes('pdf') ? 'pdf' : 'image',
-            data: e.target.result
-        };
-        document.getElementById('file-name').innerText = file.name;
-        document.getElementById('file-preview-indicator').classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
-}
-
-function clearSelectedFile() {
-    currentSelectedFileBase64 = null;
-    document.getElementById('msg-attachment').value = '';
-    document.getElementById('file-preview-indicator').classList.add('hidden');
-}
-
 function renderMessageContacts() {
-    if(currentUserRole === 'teacher') return; 
+    if(currentUserRole === 'teacher') return; // المعلم لا يرى القائمة
     const centerFilter = document.getElementById('msg-center-filter');
     if(centerFilter.options.length <= 1) {
         centerFilter.innerHTML = '<option value="">-- كل المراكز --</option>' + db.centers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     }
     const filteredTeachers = centerFilter.value ? db.teachers.filter(t => t.centerId === centerFilter.value) : db.teachers;
     document.getElementById('msg-contacts').innerHTML = filteredTeachers.map(t => {
-        return `<div onclick="selectChatUser('${t.id}', '${t.name}')" class="p-3 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer border dark:border-slate-600 transition-colors ${activeChatUserId===t.id?'ring-2 ring-blue-500 border-blue-500':''}"><div class="font-bold text-slate-800 dark:text-slate-200">${t.name}</div><div class="text-xs text-slate-400">${db.centers.find(c=>c.id===t.centerId)?.name || ''}</div></div>`;
+        const unread = false; // يمكن تطويرها لاحقاً
+        return `<div onclick="selectChatUser('${t.id}', '${t.name}')" class="p-3 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer border dark:border-slate-600 transition-colors ${activeChatUserId===t.id?'ring-2 ring-blue-500':''}"><div class="font-bold text-slate-800 dark:text-slate-200">${t.name}</div><div class="text-xs text-slate-400">${db.centers.find(c=>c.id===t.centerId)?.name || ''}</div></div>`;
     }).join('');
 }
 
@@ -713,213 +672,34 @@ function renderChatBox() {
     const myId = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_teacher_id') || 'unknown' : 'admin';
     const targetId = currentUserRole === 'teacher' ? 'admin' : activeChatUserId;
     
-    const chatMsgs = (db.messages || []).filter(m => (m.senderId === activeChatUserId && m.receiverId === 'admin') || (m.senderId === 'admin' && m.receiverId === activeChatUserId) || (currentUserRole === 'teacher' && (m.senderId === myId || m.receiverId === myId)));
+    // جلب رقم المعلم الحقيقي إذا كان المستخدم معلماً
+    const actualMyId = currentUserRole === 'teacher' ? (db.teachers.find(t => t.username === jwt_decode_if_needed())?.id || 'teacher') : myId;
+    // لتسهيل الأمر برمجياً بدون تعقيد، نعتمد على أن المراسلة للمعلم تكون مع admin
+    
+    const chatMsgs = (db.messages || []).filter(m => (m.senderId === activeChatUserId && m.receiverId === 'admin') || (m.senderId === 'admin' && m.receiverId === activeChatUserId) || (currentUserRole === 'teacher' && (m.senderId === targetId || m.receiverId === targetId)));
     
     box.innerHTML = chatMsgs.map(m => {
         const isMe = (currentUserRole === 'teacher' && m.senderId !== 'admin') || (currentUserRole !== 'teacher' && m.senderId === 'admin');
-        const align = isMe ? 'self-end bg-blue-600 text-white rounded-br-none' : 'self-start bg-white dark:bg-slate-700 border dark:border-slate-600 text-slate-800 dark:text-slate-200 rounded-bl-none';
-        
-        let attachmentHtml = '';
-        if(m.attachment) {
-            if(m.attachment.type === 'image') {
-                attachmentHtml = `<a href="${m.attachment.data}" target="_blank"><img src="${m.attachment.data}" class="max-w-xs rounded-lg mb-2 border border-white/20 shadow-sm cursor-pointer hover:opacity-90"></a>`;
-            } else if(m.attachment.type === 'pdf') {
-                attachmentHtml = `<a href="${m.attachment.data}" download="${m.attachment.name}" class="flex items-center gap-2 p-3 mb-2 bg-white/10 dark:bg-slate-800 rounded-lg border border-white/20 hover:bg-white/20 transition-colors"><i class="fas fa-file-pdf text-2xl text-red-400"></i><span class="text-sm font-bold truncate w-40" dir="ltr">${m.attachment.name}</span></a>`;
-            }
-        }
-
-        return `<div class="max-w-[75%] p-3 rounded-2xl shadow-sm ${align} flex flex-col mb-2">
-            ${attachmentHtml}
-            ${m.text ? `<span class="font-bold text-sm whitespace-pre-wrap">${m.text}</span>` : ''}
-            <span class="text-[10px] mt-1 opacity-70 ${isMe ? 'text-blue-100' : 'text-slate-400'}" dir="ltr">${m.date}</span>
-        </div>`;
+        const align = isMe ? 'self-end bg-blue-500 text-white rounded-br-none' : 'self-start bg-white dark:bg-slate-700 border dark:border-slate-600 text-slate-800 dark:text-slate-200 rounded-bl-none';
+        return `<div class="max-w-[75%] p-3 rounded-2xl shadow-sm ${align} flex flex-col"><span class="font-bold">${m.text}</span><span class="text-[10px] mt-1 opacity-70" dir="ltr">${m.date}</span></div>`;
     }).join('');
-    box.scrollTop = box.scrollHeight;
+    box.scrollTop = box.scrollHeight; // النزول لآخر رسالة
 }
 
 function sendMessage() {
-    const input = document.getElementById('msg-input'); 
-    const text = input.value.trim();
-    if(!text && !currentSelectedFileBase64) return;
+    const input = document.getElementById('msg-input'); const text = input.value.trim();
+    if(!text) return;
     if(currentUserRole !== 'teacher' && !activeChatUserId) return Toast.fire({ icon: 'warning', title: 'اختر معلماً أولاً' });
     
+    // تحديد هوية المرسل والمستقبل
     let senderId = 'admin'; let receiverId = activeChatUserId;
     if(currentUserRole === 'teacher') {
-        senderId = localStorage.getItem('awqaf_teacher_id') || 'teacher'; 
-        receiverId = 'admin'; activeChatUserId = 'admin';
+        const myTeacher = db.teachers.find(t => t.centerId === localStorage.getItem('awqaf_center_id')); // تقريبي
+        senderId = myTeacher ? myTeacher.id : 'teacher'; receiverId = 'admin'; activeChatUserId = 'admin';
     }
     
-    const newMsg = { 
-        id: Date.now().toString(), 
-        text: text, 
-        attachment: currentSelectedFileBase64,
-        senderId, 
-        receiverId, 
-        date: new Date().toLocaleString('ar-LY', {hour: '2-digit', minute:'2-digit'}) 
-    };
-    
+    const newMsg = { id: Date.now().toString(), text, senderId, receiverId, date: new Date().toLocaleString('ar-LY', {hour: '2-digit', minute:'2-digit'}) };
     if(!db.messages) db.messages = []; db.messages.push(newMsg);
     
-    input.value = ''; clearSelectedFile(); renderChatBox(); saveDB();
-}
-
-// ======================== النماذج الرسمية 1 و 2 (A4 بالعرض) ========================
-const A4_LANDSCAPE_CSS = `
-<style>
-    @page { size: A4 landscape; margin: 10mm; }
-    body { font-family: 'Amiri', sans-serif; direction: rtl; -webkit-print-color-adjust: exact; margin: 0; padding: 0;}
-</style>`;
-
-function printOfficialForm1() {
-    const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
-    const cid = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : (document.getElementById('attendance-center')?.value || document.getElementById('rep-att-center')?.value);
-    if(!cid) return alert('الرجاء اختيار المركز أولاً.');
-    
-    const center = db.centers.find(c => c.id === cid) || { name: '.....................' };
-    const students = db.students.filter(s => s.centerId === cid && !s.archived);
-    const teacher = db.teachers.find(t => t.centerId === cid) || { name: '.....................' };
-
-    let rows = '';
-    for(let i = 0; i < Math.max(students.length, 15); i++) {
-        const s = students[i] || { name: '', dob: '', surah: '' };
-        rows += `
-            <tr>
-                <td style="border:1px solid #000; padding:5px;">${i+1}</td>
-                <td style="border:1px solid #000; padding:5px; text-align:right; font-weight:bold;">${s.name}</td>
-                <td style="border:1px solid #000; padding:5px;">${s.dob ? calculateAge(s.dob).replace(' سنة', '') : ''}</td>
-                <td style="border:1px solid #000; padding:5px; font-size:10px;">${s.surah || ''}</td>
-                <td style="border:1px solid #000; padding:5px;"></td>
-                ${Array(15).fill('<td style="border:1px solid #000;"></td>').join('')}
-            </tr>
-        `;
-    }
-
-    const html = `
-        <div style="font-family:'Amiri', sans-serif; text-align:center; direction:rtl; color:#000;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                <div style="text-align:right; font-weight:bold; font-size:14px; line-height:1.5;">
-                    <div>وزارة الأوقاف والشؤون الإسلامية[cite: 2]</div>
-                    <div>إدارة شؤون القرآن الكريم والسنة النبوية[cite: 2]</div>
-                    <div>مكتب أوقاف سرت[cite: 2]</div>
-                </div>
-                <div style="text-align:center;">
-                    <div style="border:2px solid #000; padding:5px 20px; font-size:18px; font-weight:bold; margin-bottom:5px;">نموذج رقم (1) (تحضير)[cite: 2]</div>
-                    <div style="font-size:11px; font-weight:bold;">سجل إداري رسمي لتوثيق حضور وغياب الطلاب بمركز التحفيظ شهرياً[cite: 2]</div>
-                    <div style="font-size:11px;">يقوم بتعبئته محفظ المركز، ثم يحفظ ضمن السجلات الرسمية داخل المركز.[cite: 2]</div>
-                </div>
-            </div>
-            
-            <div style="display:flex; justify-content:space-between; font-weight:bold; margin:15px 0; font-size:14px;">
-                <span>اسم مركز التحفيظ / <span style="text-decoration:underline;">${center.name}</span>[cite: 2]</span>
-                <span>تقرير عن شهر / <span style="text-decoration:underline;" dir="ltr">${month}</span>[cite: 2]</span>
-                <span>اسم المحفظ / <span style="text-decoration:underline;">${teacher.name}</span>[cite: 2]</span>
-            </div>
-
-            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;" border="1">
-                <thead>
-                    <tr>
-                        <th rowspan="2" style="border:1px solid #000; width:30px;">ت</th>
-                        <th rowspan="2" style="border:1px solid #000; width:180px;">اسم الطالب[cite: 2]</th>
-                        <th rowspan="2" style="border:1px solid #000; width:60px;">المواليد[cite: 2]</th>
-                        <th rowspan="2" style="border:1px solid #000; width:80px;">مقدار حفظ القرآن[cite: 2]</th>
-                        <th rowspan="2" style="border:1px solid #000; width:80px;">مقدار حفظ المتون[cite: 2]</th>
-                        <th colspan="15" style="border:1px solid #000;">كشف الحضور والغياب[cite: 2]</th>
-                    </tr>
-                    <tr>
-                        ${Array.from({length:15}, (_,k)=>`<th style="border:1px solid #000; width:20px; height:20px;">${k+1}</th>`).join('')}
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        </div>
-    `;
-    openPrintView(html, true, A4_LANDSCAPE_CSS);
-}
-
-function printOfficialForm2() {
-    const month = document.getElementById('attendance-month')?.value || document.getElementById('rep-att-month')?.value || new Date().toISOString().slice(0, 7);
-    const cid = currentUserRole === 'teacher' ? localStorage.getItem('awqaf_center_id') : (document.getElementById('attendance-center')?.value || document.getElementById('rep-att-center')?.value);
-    if(!cid) return alert('الرجاء اختيار المركز أولاً.');
-
-    const center = db.centers.find(c => c.id === cid) || { name: '.....................' };
-    const teacher = db.teachers.find(t => t.centerId === cid) || { name: '.....................', phone: '..........', period: 'صباحي', certified: 'مجاز', payment: 'مكافأة' };
-    const stdCount = db.students.filter(s => s.centerId === cid && !s.archived).length;
-
-    const html = `
-        <div style="font-family:'Amiri', sans-serif; text-align:center; direction:rtl; color:#000; font-size:14px; line-height:1.8;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
-                <div style="text-align:right; font-weight:bold; font-size:15px;">
-                    <div>وزارة الأوقاف والشؤون الإسلامية[cite: 2]</div>
-                    <div>إدارة شؤون القرآن الكريم والسنة النبوية[cite: 2]</div>
-                    <div>مكتب أوقاف سرت[cite: 2]</div>
-                </div>
-                <div style="text-align:center;">
-                    <div style="border:2px solid #000; padding:5px 20px; font-size:18px; font-weight:bold; margin-bottom:5px;">نموذج رقم (2) (تحفيظ)[cite: 2]</div>
-                    <div style="font-size:11px; font-weight:bold;">سجل إداري رسمي يقوم محفظ المركز بتعبئته يومياً،[cite: 2]</div>
-                    <div style="font-size:11px; font-weight:bold;">ثم يُرفع إلى المشرف المختص للاعتماد والمتابعة.[cite: 2]</div>
-                </div>
-            </div>
-            
-            <div style="text-align:center; font-weight:bold; margin-bottom:20px; font-size:16px;">
-                تقرير عن شهر / <span style="text-decoration:underline;" dir="ltr">${month}</span> لعام / ......[cite: 2]
-            </div>
-            
-            <div style="text-align:right; font-weight:bold; margin-bottom:5px; border-bottom:1px solid #000; display:inline-block;">أولاً : البيانات الشخصية والوظيفية[cite: 2]</div>
-            
-            <div style="text-align:right; margin-bottom:15px; border:1px solid #000; padding:10px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span>اسم المحفظ / <strong>${teacher.name}</strong>[cite: 2]</span>
-                    <span>رقم الهاتف / <strong dir="ltr">${teacher.phone || '............'}</strong>[cite: 2]</span>
-                    <span>المواليد / ............[cite: 2]</span>
-                    <span>تاريخ التكليف / ............[cite: 2]</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span>اسم مركز التحفيظ / <strong>${center.name}</strong>[cite: 2]</span>
-                    <span>عدد الطلاب / <strong>${stdCount}</strong>[cite: 2]</span>
-                </div>
-                
-                <table style="width:100%; border:none; text-align:right; margin-top:15px;">
-                    <tr>
-                        <td style="width:33%;"><strong>صفة تكليف المحفظ:[cite: 2]</strong><br>☑ محفظ قرآن وسنة<br>☐ محفظ قرآن فقط<br>☐ معلم سنة فقط[cite: 2]</td>
-                        <td style="width:33%;"><strong>فترة التدريس بالمركز:[cite: 2]</strong><br>${teacher.period === 'صباحي' ? '☑' : '☐'} الفترة الصباحية<br>${teacher.period === 'بعد العصر' ? '☑' : '☐'} بعد العصر<br>${teacher.period === 'بعد المغرب' ? '☑' : '☐'} بعد المغرب[cite: 2]</td>
-                        <td style="width:33%;"><strong>الرواية المعتمدة:[cite: 2]</strong><br>☑ قالون<br>☐ حفص<br>☐ ورش[cite: 2]</td>
-                    </tr>
-                    <tr><td colspan="3" style="height:15px;"></td></tr>
-                    <tr>
-                        <td><strong>نوع التكليف:[cite: 2]</strong><br>${teacher.certified === 'مجاز' ? '☑' : '☐'} مجاز<br>${teacher.certified === 'غير مجاز' ? '☑' : '☐'} غير مجاز[cite: 2]</td>
-                        <td><strong>طبيعة التكليف:[cite: 2]</strong><br>${teacher.payment === 'مكافأة' ? '☑' : '☐'} مكافأة<br>${teacher.payment === 'متطوع' ? '☑' : '☐'} متطوع[cite: 2]</td>
-                        <td><strong>طريقة التدريس:[cite: 2]</strong><br>☑ تلقيناً<br>☐ قراءة من المصحف[cite: 2]</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div style="text-align:right; font-weight:bold; margin-bottom:5px; margin-top:20px; border-bottom:1px solid #000; display:inline-block;">ثانياً : الحضور والغياب الشهري[cite: 2]</div>
-            
-            <table style="width:100%; border-collapse:collapse; text-align:center; margin-bottom:30px;" border="1">
-                <thead style="background:#f0f0f0;">
-                    <tr>
-                        <th style="padding:5px; border:1px solid #000;">اليوم والتاريخ[cite: 2]</th>
-                        <th style="padding:5px; border:1px solid #000;">وقت الحضور[cite: 2]</th>
-                        <th style="padding:5px; border:1px solid #000;">وقت الانصراف[cite: 2]</th>
-                        <th style="padding:5px; border:1px solid #000;">اليوم والتاريخ[cite: 2]</th>
-                        <th style="padding:5px; border:1px solid #000;">وقت الحضور[cite: 2]</th>
-                        <th style="padding:5px; border:1px solid #000;">وقت الانصراف[cite: 2]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${Array(12).fill(`<tr>
-                        <td style="height:25px; border:1px solid #000;"></td><td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td>
-                        <td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td>
-                    </tr>`).join('')}
-                </tbody>
-            </table>
-            
-            <div style="display:flex; justify-content:space-between; margin-top:30px; font-weight:bold; font-size:16px;">
-                <div>توقيع المحفظ: ..........................[cite: 2]</div>
-                <div>اسم المشرف: ..........................[cite: 2]</div>
-                <div>توقيع المشرف: ..........................[cite: 2]</div>
-            </div>
-        </div>
-    `;
-    openPrintView(html, true, A4_LANDSCAPE_CSS);
+    input.value = ''; renderChatBox(); saveDB();
 }
